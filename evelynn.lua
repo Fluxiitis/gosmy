@@ -1,6 +1,191 @@
 if myHero.charName ~= "Evelynn" then return end
 require("DamageLib")
+local _atan = math.atan2
+local _min = math.min
+local _abs = math.abs
+local _sqrt = math.sqrt
+local _floor = math.floor
+local _max = math.max
+local _pow = math.pow
+local _huge = math.huge
+local _pi = math.pi
+local _insert = table.insert
+local _contains = table.contains
+local _sort = table.sort
+local _pairs = pairs
+local _find = string.find
+local _sub = string.sub
+local _len = string.len
 
+local LocalDrawLine = Draw.Line;
+local LocalDrawColor = Draw.Color;
+local LocalDrawCircle = Draw.Circle;
+local LocalDrawCircleMinimap = Draw.CircleMinimap;
+local LocalDrawText = Draw.Text;
+local LocalControlIsKeyDown = Control.IsKeyDown;
+local LocalControlMouseEvent = Control.mouse_event;
+local LocalControlSetCursorPos = Control.SetCursorPos;
+local LocalControlCastSpell = Control.CastSpell;
+local LocalControlKeyUp = Control.KeyUp;
+local LocalControlKeyDown = Control.KeyDown;
+local LocalControlMove = Control.Move;
+local LocalGetTickCount = GetTickCount;
+local LocalGamecursorPos = Game.cursorPos;
+local LocalGameCanUseSpell = Game.CanUseSpell;
+local LocalGameLatency = Game.Latency;
+local LocalGameTimer = Game.Timer;
+local LocalGameHeroCount = Game.HeroCount;
+local LocalGameHero = Game.Hero;
+local LocalGameMinionCount = Game.MinionCount;
+local LocalGameMinion = Game.Minion;
+local LocalGameTurretCount = Game.TurretCount;
+local LocalGameTurret = Game.Turret;
+local LocalGameWardCount = Game.WardCount;
+local LocalGameWard = Game.Ward;
+local LocalGameObjectCount = Game.ObjectCount;
+local LocalGameObject = Game.Object;
+local LocalGameMissileCount = Game.MissileCount;
+local LocalGameMissile = Game.Missile;
+local LocalGameParticleCount = Game.ParticleCount;
+local LocalGameParticle = Game.Particle;
+local LocalGameIsChatOpen = Game.IsChatOpen;
+local LocalGameIsOnTop = Game.IsOnTop;
+function GetGameObjects()
+    --EnemyHeroes = {}
+    print(Game.ObjectCount())
+    for i = 1, Game.ObjectCount() do
+        local GameObject = Game.Object(i)
+        if GameObject.isEnemy then
+            if GameObject.charName:match("Cait") then
+                if EnemyTraps[GameObject.name] == nil then
+                    print(GameObject.isEnemy)
+                    print(GameObject.type)
+                    print(GameObject.name)
+                    print(GameObject.pos)
+                    print(EnemyTraps[GameObject.name])
+                    Draw.Circle(GameObject.pos, GameObject.boundingRadius, 10, Draw.Color(255, 255, 255, 255))
+                    Draw.Text(GameObject.name, 17, GameObject.pos2D.x - 45, GameObject.pos2D.y + 10, Draw.Color(0xFF32CD32))
+                    EnemyTraps[GameObject.name] = GameObject.name
+                end
+            end
+        end
+    end
+    if Game.ObjectCount() == 0 then
+        EnemyTraps = {}
+    end
+--return EnemyHeroes
+end
+
+local units = {}
+
+for i = 1, Game.HeroCount() do
+    local unit = Game.Hero(i)
+    units[i] = {unit = unit, spell = nil}
+end
+
+function GetMode()
+    if _G.SDK then
+        if _G.SDK.Orbwalker.Modes[_G.SDK.ORBWALKER_MODE_COMBO] then
+            return "Combo"
+        elseif _G.SDK.Orbwalker.Modes[_G.SDK.ORBWALKER_MODE_HARASS] then
+            return "Harass"
+        elseif _G.SDK.Orbwalker.Modes[_G.SDK.ORBWALKER_MODE_LANECLEAR] then
+            return "Clear"
+        elseif _G.SDK.Orbwalker.Modes[_G.SDK.ORBWALKER_MODE_FLEE] then
+            return "Flee"
+        end
+    else
+        return GOS.GetMode()
+    end
+end
+
+function IsReady(spell)
+    return Game.CanUseSpell(spell) == 0
+end
+
+function ValidTarget(target, range)
+    range = range and range or math.huge
+    return target ~= nil and target.valid and target.visible and not target.dead and target.distance <= range
+end
+
+function GetDistance(p1, p2)
+    return _sqrt(_pow((p2.x - p1.x), 2) + _pow((p2.y - p1.y), 2) + _pow((p2.z - p1.z), 2))
+end
+
+function GetDistance2D(p1, p2)
+    return _sqrt(_pow((p2.x - p1.x), 2) + _pow((p2.y - p1.y), 2))
+end
+
+local _OnWaypoint = {}
+function OnWaypoint(unit)
+    if _OnWaypoint[unit.networkID] == nil then _OnWaypoint[unit.networkID] = {pos = unit.posTo, speed = unit.ms, time = LocalGameTimer()} end
+    if _OnWaypoint[unit.networkID].pos ~= unit.posTo then
+        _OnWaypoint[unit.networkID] = {startPos = unit.pos, pos = unit.posTo, speed = unit.ms, time = LocalGameTimer()}
+        DelayAction(function()
+            local time = (LocalGameTimer() - _OnWaypoint[unit.networkID].time)
+            local speed = GetDistance2D(_OnWaypoint[unit.networkID].startPos, unit.pos) / (LocalGameTimer() - _OnWaypoint[unit.networkID].time)
+            if speed > 1250 and time > 0 and unit.posTo == _OnWaypoint[unit.networkID].pos and GetDistance(unit.pos, _OnWaypoint[unit.networkID].pos) > 200 then
+                _OnWaypoint[unit.networkID].speed = GetDistance2D(_OnWaypoint[unit.networkID].startPos, unit.pos) / (LocalGameTimer() - _OnWaypoint[unit.networkID].time)
+            end
+        end, 0.05)
+    end
+    return _OnWaypoint[unit.networkID]
+end
+
+function VectorPointProjectionOnLineSegment(v1, v2, v)
+    local cx, cy, ax, ay, bx, by = v.x, (v.z or v.y), v1.x, (v1.z or v1.y), v2.x, (v2.z or v2.y)
+    local rL = ((cx - ax) * (bx - ax) + (cy - ay) * (by - ay)) / ((bx - ax) ^ 2 + (by - ay) ^ 2)
+    local pointLine = {x = ax + rL * (bx - ax), y = ay + rL * (by - ay)}
+    local rS = rL < 0 and 0 or (rL > 1 and 1 or rL)
+    local isOnSegment = rS == rL
+    local pointSegment = isOnSegment and pointLine or {x = ax + rS * (bx - ax), y = ay + rS * (by - ay)}
+    return pointSegment, pointLine, isOnSegment
+end
+
+function GetMinionCollision(StartPos, EndPos, Width, Target)
+    local Count = 0
+    for i = 1, LocalGameMinionCount() do
+        local m = LocalGameMinion(i)
+        if m and not m.isAlly then
+            local w = Width + m.boundingRadius
+            local pointSegment, pointLine, isOnSegment = VectorPointProjectionOnLineSegment(StartPos, EndPos, m.pos)
+            if isOnSegment and GetDistanceSqr(pointSegment, m.pos) < w ^ 2 and GetDistanceSqr(StartPos, EndPos) > GetDistanceSqr(StartPos, m.pos) then
+                Count = Count + 1
+            end
+        end
+    end
+    return Count
+end
+
+function GetDistanceSqr(Pos1, Pos2)
+    local Pos2 = Pos2 or myHero.pos
+    local dx = Pos1.x - Pos2.x
+    local dz = (Pos1.z or Pos1.y) - (Pos2.z or Pos2.y)
+    return dx ^ 2 + dz ^ 2
+end
+
+function GetEnemyHeroes()
+    EnemyHeroes = {}
+    for i = 1, Game.HeroCount() do
+        local Hero = Game.Hero(i)
+        if Hero.isEnemy then
+            table.insert(EnemyHeroes, Hero)
+        end
+    end
+    return EnemyHeroes
+end
+
+function IsUnderTurret(unit)
+    for i = 1, Game.TurretCount() do
+        local turret = Game.Turret(i);
+        if turret and turret.isEnemy and turret.valid and turret.health > 0 then
+            if GetDistance(unit, turret.pos) <= 850 then
+                return true
+            end
+        end
+    end
+    return false
+end
 Evelynn = class()
 
 function OnLoad()
