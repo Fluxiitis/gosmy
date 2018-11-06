@@ -585,7 +585,7 @@ local targetQ = GetTarget(Q.Range)
             end
           end
     end 
-
+end
 
 HarassMode = function()
     local targetQ = GetTarget(Q.Range)
