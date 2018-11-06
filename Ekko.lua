@@ -13,7 +13,8 @@ require "MapPosition"
     local ObjectCount = Game.ObjectCount
     local Object = Game.Object
     local clock = os.clock
-	local Q = {Range = 950, Width = 50, Delay = 0.25 + ping, Speed = 1650, Collision = false, Radius = 60, From = Ekko}
+	local Q = {Range = 950, Width = 50, Delay = 0.25 + ping, Speed = 1650, Collision = false, Type = line, Radius = 60, From = Ekko}
+        local W = {Range = 1600, Delay = 3.75, Speed 1650, Radius = 375, Type = circular, From Ekko}   
 	local Qdamage = {60,75,90,105,120}
     local visionTick = GetTickCount()
     local mathhuge = math.huge
@@ -584,7 +585,27 @@ local targetQ = GetTarget(Q.Range)
             end
             end
           end
-    end 
+    end
+               -----------------------------------------------W USAGE---------------------------------------------	
+local target = GetTarget(W.Range)
+	if targetW then
+		if Ekko.attackData.state ~= 2 and UseSpell(0) == 0 and targetW.pos:DistanceTo() <= W.Range  and Saga.Combo.UseW:Value() then
+			if UseSpell(2) == 0 and Saga.Combo.UseW:Value() then return end
+			local Wpos, qcpos, hitchance = GetBestCastPosition(targetW, W)
+			if hitchance >= 2 then
+			if Wpos:DistanceTo() > W.Range then 
+			Wpos = Ekko.pos + (Wpos - Ekko.pos):Normalized()*W.Range
+                end
+			Wpos = Ekko.pos + (Wpos - Ekko.pos):Normalized()*(GetDistance(Wpos, Ekko.pos) + 0.5*targetW.boundingRadius)
+            if Wpos:To2D().onScreen then
+                CastSpell(HK_W, Wpos, W.Range, W.Delay * 1000) 
+            else
+                CastSpellMM(HK_W, Wpos, W.Range, W.Delay * 1000)
+            end
+            end
+          end
+    end
+
 end
 
 HarassMode = function()
