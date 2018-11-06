@@ -13,7 +13,7 @@ require "MapPosition"
     local ObjectCount = Game.ObjectCount
     local Object = Game.Object
     local clock = os.clock
-	local Q = {Range = 950, Width = 50, Delay = 0.25 + ping, Speed = 1650, Collision = false, Radius = 60}
+	local Q = {Range = 950, Width = 50, Delay = 0.25 + ping, Speed = 1650, Collision = false, Radius = 60, From = Ekko}
 	local Qdamage = {60,75,90,105,120}
     local visionTick = GetTickCount()
     local mathhuge = math.huge
@@ -533,9 +533,9 @@ LocalCallbackAdd(
         LocalCallbackAdd(
     'Draw', function()
         if Saga.Drawings.Q.Enabled:Value() then Draw.Circle(Ekko.pos, Q.Range, 0, Saga.Drawings.Q.Color:Value()) end
-        if Saga.Drawings.W.Enabled:Value() then Draw.Circle(Ekko.pos, W.Range, 0, Saga.Drawings.W.Color:Value()) end
-        if Saga.Drawings.E.Enabled:Value() then Draw.Circle(Ekko.pos, E.Range, 0, Saga.Drawings.E.Color:Value()) end
-        if Saga.Drawings.R.Enabled:Value() then Draw.Circle(Ekko.pos, R.Range, 0, Saga.Drawings.R.Color:Value()) end
+       -- if Saga.Drawings.W.Enabled:Value() then Draw.Circle(Ekko.pos, W.Range, 0, Saga.Drawings.W.Color:Value()) end
+       -- if Saga.Drawings.E.Enabled:Value() then Draw.Circle(Ekko.pos, E.Range, 0, Saga.Drawings.E.Color:Value()) end
+       -- if Saga.Drawings.R.Enabled:Value() then Draw.Circle(Ekko.pos, R.Range, 0, Saga.Drawings.R.Color:Value()) end
         
     end)
 
