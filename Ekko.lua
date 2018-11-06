@@ -14,7 +14,7 @@ require "MapPosition"
     local Object = Game.Object
     local clock = os.clock
 	local Q = {Range = 950, Width = 50, Delay = 0.25 + ping, Speed = 1650, Collision = false, Type = line, Radius = 60, From = Ekko}
-        local W = {Range = 1600, Delay = 3.75, Speed 1650, Radius = 375, Type = circular, From Ekko}   
+        local W = {Range = 1600, Delay = 3.75, Speed = 1650, Radius = 375, Type = circular, From = Ekko}   
 	local Qdamage = {60,75,90,105,120}
     local visionTick = GetTickCount()
     local mathhuge = math.huge
