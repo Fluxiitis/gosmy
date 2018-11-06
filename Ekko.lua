@@ -534,7 +534,7 @@ LocalCallbackAdd(
         LocalCallbackAdd(
     'Draw', function()
         if Saga.Drawings.Q.Enabled:Value() then Draw.Circle(Ekko.pos, Q.Range, 0, Saga.Drawings.Q.Color:Value()) end
-       -- if Saga.Drawings.W.Enabled:Value() then Draw.Circle(Ekko.pos, W.Range, 0, Saga.Drawings.W.Color:Value()) end
+        if Saga.Drawings.W.Enabled:Value() then Draw.Circle(Ekko.pos, W.Range, 0, Saga.Drawings.W.Color:Value()) end
        -- if Saga.Drawings.E.Enabled:Value() then Draw.Circle(Ekko.pos, E.Range, 0, Saga.Drawings.E.Color:Value()) end
        -- if Saga.Drawings.R.Enabled:Value() then Draw.Circle(Ekko.pos, R.Range, 0, Saga.Drawings.R.Color:Value()) end
         
