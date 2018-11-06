@@ -561,8 +561,8 @@ AutoQ = function()
                     if Qpos:To2D().onScreen then
                         Control.CastSpell(HK_Q, Qpos) 
 		end
-			end
-	end	
+	end
+end	
               
 Combo = function()
                 -----------------------------------------------Q USAGE---------------------------------------------
