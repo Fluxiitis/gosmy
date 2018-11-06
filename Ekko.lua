@@ -560,10 +560,7 @@ AutoQ = function()
                     Qpos = Ekko.pos + (Qpos - Ekko.pos):Normalized()*(GetDistance(Qpos, Ekko.pos) + 0.5*targetQ.boundingRadius)
                     if Qpos:To2D().onScreen then
                         Control.CastSpell(HK_Q, Qpos) 
-                  end
-                 end
-		
-end
+
               
 Combo = function()
                 -----------------------------------------------Q USAGE---------------------------------------------
