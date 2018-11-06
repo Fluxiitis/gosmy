@@ -2,6 +2,7 @@ if myHero.charName ~= "Ekko" then return end
 require "DamageLib"
 require "MapPosition"
 
+
     local Latency = Game.Latency
     local Ekko = myHero
     local ping = Game.Latency()/1000
@@ -589,22 +590,10 @@ local targetQ = GetTarget(Q.Range)
                -----------------------------------------------W USAGE---------------------------------------------	
 local targetW = GetTarget(W.Range)
 	if targetW then
-		 if Ekko.attackData.state ~= 2 and UseSpell(0) == 0 and targetW.pos:DistanceTo() <= W.Range  and Saga.Combo.UseW:Value() then
-          	 if UseSpell(2) == 0 and Saga.Combo.UseE:Value() then return end 
-	    local Wpos, qcpos, hitchance = GetBestCastPosition(targetW, W)
-            if hitchance >= 2 then
-            if Wpos:DistanceTo() > W.Range then 
-                Wpos = Ekko.pos + (Wpos - Ekko.pos):Normalized()*W.Range
-                end
-            Wpos = Ekko.pos + (Wpos - Ekko.pos):Normalized()*(GetDistance(Wpos, Ekko.pos) + 0.5*targetW.boundingRadius)
-            if Wpos:To2D().onScreen then
-                CastSpell(HK_W, Wpos, W.Range, W.Delay * 1000) 
-            else
-                CastSpellMM(HK_W, Wpos, W.Range, W.Delay * 1000)
-            end
-            end
-          end
-	end	
+		 if not target then return end
+		if Saga.Combo.UseW:Value() and Ready(_R) and targetW.pos:DistanceTo(targetW.pos) < 1150 then
+self:CastW(targetW)
+end
 
 HarassMode = function()
     local targetQ = GetTarget(Q.Range)
