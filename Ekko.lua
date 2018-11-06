@@ -17,6 +17,8 @@ Latency = Game.Latency
     local TEAM_ALLY = Ekko.team
     local TEAM_ENEMY = 300 - TEAM_ALLY
     local myCounter = 1
+    local flux
+    local flux_Menu
 local DamageReductionTable = {
         ['Braum'] = {
             buff = 'BraumShieldRaise',
