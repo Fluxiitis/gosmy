@@ -562,7 +562,7 @@ AutoQ = function()
                         Control.CastSpell(HK_Q, Qpos) 
                     end
                     end
-                    end 
+end 
               
 Combo = function()
                 -----------------------------------------------Q USAGE---------------------------------------------
