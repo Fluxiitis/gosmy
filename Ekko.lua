@@ -603,7 +603,7 @@ local targetW = GetTarget(W.Range)
             end
             end
           end
-		
+	end	
 end
 
 HarassMode = function()
