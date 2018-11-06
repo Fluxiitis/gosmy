@@ -222,7 +222,7 @@ LocalCallbackAdd(
     'Tick',
 	function()
 		
-        if Game.Timer() > Saga.Rate.champion:Value() and #_EnemyHeroes == 0 then
+        if Game.Timer() > flux.Rate.champion:Value() and #_EnemyHeroes == 0 then
             TotalHeroes = GetEnemyHeroes()
         end
 		if #_EnemyHeroes == 0 then return end
