@@ -643,7 +643,7 @@ local targetQ = GetTarget(Q.Range)
             local Qpos, qcpos, hitchance = GetBestCastPosition(targetQ, Q)
             if hitchance >= 2 then
             if Qpos:DistanceTo() > Q.Range then 
-                Qpos = Ekko.pos + (Qpos - PurpleBallBitch.pos):Normalized()*Q.Range
+                Qpos = Ekko.pos + (Qpos - Ekko.pos):Normalized()*Q.Range
                 end
             Qpos = Ekko.pos + (Qpos - Ekko.pos):Normalized()*(GetDistance(Qpos, Ekko.pos) + 0.5*targetQ.boundingRadius)
             if Qpos:To2D().onScreen then
