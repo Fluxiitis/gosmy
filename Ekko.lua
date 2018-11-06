@@ -587,31 +587,23 @@ local targetQ = GetTarget(Q.Range)
           end
     end
                -----------------------------------------------W USAGE---------------------------------------------	
-local target = GetTarget(W.Range)
+local targetW = GetTarget(W.Range)
 	if targetW then
-		if not Saga.Combo.UseW:Value() then
-		return
-	end
-	
-	if not IsReady(_W) or target == nil then
-		return
-	end
-	
-	if myHero.activeSpell and myHero.activeSpell.valid and myHero.activeSpell.isChanneling or myHero.activeSpell.isAutoAttack then
-		return
-	end
-	
-	if GetDistance(Wpos.pos, Ekko.pos) <= self.W.Range then
-		local data = myHero:GetSpellData(_W)
-		
-		if data.toggleState == 1 then
-			CastSpell(HK_W, target.pos, self.W.Range, 0)
-		elseif data.toggleState == 2 then
-				Control.CastSpell(HK_W)
-			end
+		 if Ekko.attackData.state ~= 2 and UseSpell(0) == 0 and targetW.pos:DistanceTo() <= W.Range  and Saga.Combo.UseW:Value() then
+                 local Wpos, qcpos, hitchance = GetBestCastPosition(targetW, W)
+		if hitchance >= 2 then
+		if Wpos:DistanceTo() > W.Range then
+		 Wpos = Ekko.pos + (Wpos - Ekko.pos):Normalized()*W.Range
 		end
+		Wpos = Ekko.pos + (Wpos - Ekko.pos):Normalized()*(GetDistance(Wpos, Ekkos.pos) + 0.5*targetQ.boundingRadius)
+		if Wpos:To2D().onScreen then 
+			CastSpell(HK_W, Wpos, W.Range, W.Delay * 1000)
+		else
+			CastSpellMM(HK_W, Wpos, W.Range, W.Delay * 1000)		
 	end
-end
+        end
+	end
+end		
 
 HarassMode = function()
     local targetQ = GetTarget(Q.Range)
