@@ -590,7 +590,8 @@ local targetQ = GetTarget(Q.Range)
 local targetW = GetTarget(W.Range)
 	if targetW then
 		 if Ekko.attackData.state ~= 2 and UseSpell(0) == 0 and targetW.pos:DistanceTo() <= W.Range  and Saga.Combo.UseW:Value() then
-            local Wpos, qcpos, hitchance = GetBestCastPosition(targetW, W)
+          	 if UseSpell(2) == 0 and Saga.Combo.UseE:Value() then return end 
+	    local Wpos, qcpos, hitchance = GetBestCastPosition(targetW, W)
             if hitchance >= 2 then
             if Wpos:DistanceTo() > W.Range then 
                 Wpos = Ekko.pos + (Wpos - Ekko.pos):Normalized()*W.Range
@@ -604,7 +605,6 @@ local targetW = GetTarget(W.Range)
             end
           end
 	end	
-end
 
 HarassMode = function()
     local targetQ = GetTarget(Q.Range)
