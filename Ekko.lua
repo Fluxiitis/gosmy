@@ -564,6 +564,7 @@ AutoQ = function()
                     end
                 end 
 end
+end
 Combo = function()
                 -----------------------------------------------Q USAGE---------------------------------------------
 local target = GetTarget(1100)
