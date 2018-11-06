@@ -564,77 +564,8 @@ AutoQ = function()
                 end 
 end
 Combo = function()
-    local targetR = GetTarget(R.Range)
------------------------------R USAGE ----------------------------------------------------
-                if Ekko.attackData.state ~= 2 and UseSpell(3) == 0 and Saga.Combo.UseR:Value() then
-                    rDMG = 0
-                    local balls = Ekko:GetSpellData(_R).ammo
-                        if targetR then
-                            local ap = .2*Ekko.ap
-                            rDMG = (finaldamage + ap ) * balls
-
-                    local totalrDMG = CalcMagicalDamage(Ekko, targetR, rDMG)
-                    
-                    if totalrDMG - 100 > (targetR.health + targetR.shieldAD + targetR.shieldAP) and targetR.pos:DistanceTo() <= R.Range and Saga.KillSteal.rKS[targetR.charName]:Value() then
-                        CastSpell(HK_R, targetR)
-                    end
-                end
-                end
-
                 -----------------------------------------------Q USAGE---------------------------------------------
----------------------------------QE Usage------------------------------------------------------------------
 local target = GetTarget(1100)
---if target then
---if PurpleBallBitch.dead or Game.IsChatOpen() == true  or IsEvading() == true then return end
---[[if PurpleBallBitch.attackData.state ~= 2 and UseSpell(0) == 0 and  UseSpell(2) == 0 and Saga.Combo.UseE:Value() then
-    if target.pos:DistanceTo() > Q.Range then
-    local posE, posEC, hitchance = GetBestCastPosition(target, E)
-    local pos = PurpleBallBitch.pos + (posE - PurpleBallBitch.pos):Normalized() * 600
-    if UseSpell(2) == 0 and UseSpell(0) == 0 and hitchance >= 2 then
-    if pos:To2D().onScreen then
-        CastSpell(HK_Q, pos, Q.Range)
-        CastSpell(HK_E, pos, E.Range, 1000 + ping)
-    else
-        CastSpellMM(HK_Q, pos, Q.Range)
-        CastSpellMM(HK_E, pos, E.Range, 1000 + ping)
-    end
-    end
-    elseif target.pos:DistanceTo() <= Q.Range then
-        local posE, posEC, hitchance = GetBestCastPosition(target, E)
-        if posE:DistanceTo() > Q.Range and hitchance > 2 then
-            pos = PurpleBallBitch.pos + (posE - PurpleBallBitch.pos):Normalized()*Q.Range
-            end
-            pos = PurpleBallBitch.pos + (posE - PurpleBallBitch.pos):Normalized()*(GetDistance(posE, PurpleBallBitch.pos) + 0.5*target.boundingRadius)
-            if hitchance >= 2 then
-                if pos:To2D().onScreen then
-                    CastSpell(HK_E, pos, E.Range)
-                    CastSpell(HK_Q, pos, Q.Range)
-                end
-        
-        end
-        
-    end
-end
-end]]--
-
-if target then
-    if Game.CanUseSpell(0) == 0 and Game.CanUseSpell(2) == 0 and Saga.Combo.UseE:Value() then--E + Q at max range
-        --Update the EQ speed and the range
-        local d = Q.Range / E.Speed 
-        local QEpos, qecpos, hitchance = GetBestCastPosition(target, E)
-        local EQpos, eqcpos, eqhitchance = GetBestCastPosition(target, Q)
-        local pos
-        if GetDistance(myHero.pos, target.pos) > Q.Range then
-            pos = Vector(myHero.pos) + (Vector(QEpos) - Vector(myHero.pos)):Normalized() * 700 
-        else
-            pos = Ekko.pos + (EQpos - Ekko.pos):Normalized()*(GetDistance(EQpos, Ekko.pos) + 0.5*target.boundingRadius)
-        end
-        if GetDistance(QEpos, pos) <= (-0.6 * 700 + 966) and Ekko.attackData.state ~= 2 then
-            CastSpell(HK_Q, pos)
-            CastSpell(HK_E, pos, E.Range, .03 * 1000)
-        end
-    end
-end
 
 local targetQ = GetTarget(Q.Range)
     if targetQ then
@@ -654,62 +585,7 @@ local targetQ = GetTarget(Q.Range)
             end
           end
     end 
------------------------------------------W Usage-----------------------------------------------                
-                local targetW = GetTarget(W.Range)
-                if targetW then
 
-                if not hasball and Ekko.attackData.state ~= 2 and UseSpell(1) == 0 and targetW.pos:DistanceTo() <= W.Range and GotBuff(myHero, "syndrawtooltip") == 0 and Saga.Combo.UseW:Value() and os.clock() - wCounter > .7 then
-                    if IDList then 
-                    local bitch, bitchpos = findPet() end
-                    if bitch  then
-                        Control.CastSpell(HK_W, bitchpos, W.Range)
-    
-                    elseif not bitch and #thesenuts ~= 0 then
-                        for i = 1, #thesenuts do 
-                            local ballQ = thesenuts[i]
-                            if ballQ and ballQ:DistanceTo() <= W.Range then
-                                Control.CastSpell(HK_W, ballQ)
-                                
-                            end
-                        end
-                    elseif not bitch and #thesenuts == 0 then 
-                        local minionb, minionposb = findMinion()
-                        if not minionb then return end
-                        Control.CastSpell(HK_W, minionposb)
-                        
-                        
-                    end
-                    wCounter = os.clock()
-                end
-            if UseSpell(1) == 0 and targetW.pos:DistanceTo() <= W.Range and Saga.Combo.UseW:Value() and os.clock() - wCounter > 1 then
-                local targetW2 = GetTarget(W.Range)
-                local W2Pos, WCPos, hitchance = GetBestCastPosition(targetW2, W)
-                if W2Pos:DistanceTo() > W.Range and hitchance >= 2 then 
-                    W2Pos = Ekko.pos + (W2Pos - Ekko.pos):Normalized()*W.Range
-                    
-                    end
-                    if W2Pos:DistanceTo() < W.Range and hitchance >= 2 then
-                    W2Pos = Ekko.pos + (W2Pos - Ekko.pos):Normalized()*(GetDistance(W2Pos, Ekko.pos) + 0.5*targetW2.boundingRadius) end
-                    if W2Pos:To2D().onScreen then
-                        Control.CastSpell(HK_W, W2Pos)
-                    end
-                    wCounter = os.clock()
-            end
-        end 
-
-
-
-
-
-            -----------------------------------E Usage--------------------------
-           if Ekko.attackData.state ~= 2 and UseSpell(2) == 0 and Saga.Combo.UseER:Value() then
-                if UseSpell(0) == 0 and Saga.Combo.UseE:Value() then return end    
-                local targetER = findEmemy(1000)
-                eBola(targetER, Ekko.pos) 
-                
-           end
-           ----------------------------------------------------------------------
-end
 
 HarassMode = function()
     local targetQ = GetTarget(Q.Range)
