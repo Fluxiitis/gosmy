@@ -1,8 +1,9 @@
 if myHero.charName ~= "Ekko" then return end
+
+
+
 require "DamageLib"
 require "MapPosition"
-
-
     local Latency = Game.Latency
     local Ekko = myHero
     local ping = Game.Latency()/1000
@@ -49,9 +50,538 @@ require "MapPosition"
     local wCounter = 0
     local hasball = false
     local _movementHistory = {}
-    
+	
+   --PremiumPrediction --- 
+   
+   local a = Game.Latency
+local b = Game.Timer
+local c = Game.HeroCount
+local d = Game.Hero
+local e = Game.MinionCount
+local f = Game.Minion
+local g = math.abs
+local h = math.atan
+local i = math.atan2
+local j = math.acos
+local k = math.ceil
+local l = math.cos
+local m = math.deg
+local n = math.floor
+local o = math.huge
+local p = math.max
+local q = math.min
+local r = math.pi
+local q = math.min
+local s = math.sin
+local t = math.sqrt
+local u = table.insert
+local v = table.remove
+   
+	function OnLoad()
+	PremiumPrediction()
+end
+
+function GetDistanceSqr(w, x)
+	local x = x or myHero.pos
+	local y = w.x - x.x
+	local z = (w.z or w.y) - (x.z or x.y)
+	return y * y + z * z
+end
+
+function GetDistance(w, x)
+	return t(GetDistanceSqr(w, x))
+end
+
+function GetEnemyHeroes()
+	EnemyHeroes = {}
+	for A = 1, c() do
+		local B = d(A)
+		if B.isEnemy then
+			u(EnemyHeroes, B)
+		end
+	end
+	return EnemyHeroes
+end
+
+function IsInRange(w, x, C)
+	local D = w.x - x.x
+	local E = w.z - x.z
+	return D * D + E * E <= C * C
+end
+
+function Rotate2D(F, G, H)
+	local F = {
+		x = F.x - G.x,
+		y = F.y,
+		z = F.z - G.z
+	}
+	F.x, F.z = l(H) * F.x - s(H) * F.z + G.x, s(H) * F.x + l(H) * F.z + G.z
+	return F
+end
+
+function ValidTarget(I, C)
+	if not C or not C then
+		C = o
+	end
+	return I ~= nil and I.valid and I.visible and not I.dead and C >= I.distance
+end
+
+function VectorPointProjectionOnLineSegment(J, K, L)
+	local M, N, O, P, Q, R = K.z or L.x, L.z or L.y, J.x, J.z or J.y, K.x, K.y
+	local S = ((M - O) * (Q - O) + (N - P) * (R - P)) / ((Q - O) ^ 2 + (R - P) ^ 2)
+	local T = {
+		x = O + S * (Q - O),
+		y = P + S * (R - P)
+	}
+	local U = S < 0 and 0 or S > 1 and 1 or S
+	local V = U == S
+	local W = V and T or {
+		x = O + U * (Q - O),
+		y = P + U * (R - P)
+	}
+	return W, T, V
+end
+
+function VectorMovementCollision(X, Y, J, Z, K, _)
+	local a0, a1, a2, a3, a4, a5 = X.x, X.z, Y.x, Y.z, Z.x, Z.z
+	local a6, a7 = a2 - a0, a3 - a1
+	local a8, a9, aa = t(a6 * a6 + a7 * a7), nil, nil
+	local ab, ac = a8 ~= 0 and J * a7 / a8 or a8 ~= 0 and J * a6 / a8 or 0, 0
+	local ad = function(ae)
+		if ae then
+		else
+		end
+		return {
+			x = a0 + ab * ae,
+			z = a1 + ac * ae
+		} or nil
+	end
+	if _ and _ ~= 0 then
+		a0, a1 = a0 + ab * _, a1 + ac * _
+	end
+	local af, ag = a4 - a0, a5 - a1
+	local ah = af * af + ag * ag
+	if a8 > 0 then
+		if J == o then
+			local ae = a8 / J
+			a9 = K * ae >= 0 and ae or nil
+		elseif K == o then
+			a9 = 0
+		else
+			local ai, aj = ab * ab + ac * ac - K * K, -af * ab - ag * ac
+			if ai == 0 then
+				if aj == 0 then
+					a9 = ah == 0 and 0 or nil
+				else
+					local ae = -ah / (2 * aj)
+					a9 = K * ae >= 0 and ae or nil
+				end
+			else
+				local ak = aj * aj - ai * ah
+				if ak >= 0 then
+					local al = t(ak)
+					local ae = (-al - aj) / ai
+					a9 = K * ae >= 0 and ae or nil
+					ae = (al - aj) / ai
+					aa = K * ae >= 0 and ae or nil
+				end
+			end
+		end
+	elseif a8 == 0 then
+		a9 = 0
+	end
+	return a9, ad(a9), aa, ad(aa), a8
+end
+
+class("PremiumPrediction")
+
+function PremiumPrediction:__init()
+	ActiveWaypoints = {}
+	Callback.Add("Tick", function()
+		self:Tick()
+	end)
+end
+
+function PremiumPrediction:Tick()
+	self:ProcessWaypoint(GetEnemyHeroes())
+end
+
+function EqualVector(an, ao)
+	local ap = an.x - ao.x
+	local aq = an.y - ao.y
+	return ap >= -10 and ap <= 10 and aq >= -10 and aq <= 10
+end
+
+function PremiumPrediction:GetPrediction(am, an, ao, C, _, radius, ap, collision)
+	local aq = Vector(an.pos)
+	if aq then
+		local ao = ao or o
+		local C = C or 12500
+		local ar = an.networkID
+		if self:IsMoving(an) then
+			if self:IsDashing(an) then
+				local as, at, au = self:GetDashPrediction(am, an, ao, C, _)
+				return as, at, au
+			else
+				local as, at, au = self:GetStandardPrediction(am, an, ao, C, _, radius, ap, collision)
+				return as, at, au
+			end
+		else
+			local as, at, au = self:GetImmobilePrediction(am, an, ao, C, _, radius, collision)
+			return as, at, au
+		end
+	end
+end
+
+function PremiumPrediction:GetDashPrediction(am, an, ao, C, _)
+	if self:IsDashing(an) then
+		local am = Vector(am.pos)
+		local aq = Vector(an.pos)
+		local _ = _ + a() / 1000
+		local av = an.pathing.dashSpeed
+		local as = aq
+		local at = 0
+		local aw = Vector(an.pathing.startPos)
+		local ax = Vector(an.pathing.endPos)
+		local ay, az, aA = ax.x - aw.x, ax.y - aw.y, ax.z - aw.z
+		local aB = t(ay * ay + aA * aA)
+		ay = ay / aB * av
+		az = az / aB
+		aA = aA / aB * av
+		local ai = ay * ay + aA * aA - ao * ao
+		local aj = 2 * (aw.x * ay + aw.z * aA - am.x * ay - am.z * aA)
+		local ah = aw.x * aw.x + aw.z * aw.z + am.x * am.x + am.z * am.z - 2 * am.x * aw.x - 2 * am.z * aw.z
+		local aC = aj * aj - 4 * ai * ah
+		local a9 = (-aj - t(aC)) / (2 * ai)
+		local aa = (-aj + t(aC)) / (2 * ai)
+		local aD = _ + p(a9, aa)
+		local aE = GetDistance(aq, ax) / ao
+		if aD <= aE then
+			as = aq:Extended(ax, av * aD)
+		else
+			as = ax
+		end
+		at = 10
+		local au = _ + GetDistance(as, am) / ao
+		if collision and self:Collision(am, as, radius / 1.5) or MapPosition:inWall(as) then
+			at = -1
+		elseif GetDistanceSqr(aq, am) > C * C then
+			at = 0
+		end
+		return as, at, au
+	end
+end
+
+function PremiumPrediction:GetImmobilePrediction(am, an, ao, C, _, radius, collision, av)
+	local am = Vector(am.pos)
+	local aq = Vector(an.pos)
+	local av = an.ms
+	local as = aq
+	local at = 0
+	local au = _ + a() / 1000 + GetDistance(as, am) / ao
+	local aF, aG = self:IsAttacking(an)
+	local aH, aI = self:IsImmobile(an)
+	if aF then
+		at = q(10, k(radius / av * 1.1 / (au - aG) * 10))
+	elseif aH then
+		if au < aI then
+			at = 10
+		else
+			at = q(10, k(radius / av * 1.1 / (au - aI) * 10))
+		end
+	else
+		at = q(10, k(radius / av * 1.1 / au * 10))
+	end
+	if not an.visible then
+		at = n(at / 2)
+	end
+	if collision and self:Collision(am, as, radius / 1.5) or MapPosition:inWall(as) then
+		at = -1
+	elseif GetDistanceSqr(aq, am) > C * C then
+		at = 0
+	end
+	return as, at, au
+end
+
+function PremiumPrediction:GetStandardPrediction(am, an, ao, C, _, radius, ap, collision, av)
+	local am = Vector(am.pos)
+	local aq = an.pos
+	local _ = a() / 1000 + _
+	local av = an.ms
+	local as = aq
+	local at = 0
+	local au = 0
+	local aJ = self:GetWaypoints(an)
+	if aJ then
+		local aK = aq
+		local aL = Vector(an.pathing.endPos)
+		local ay, az, aA = aL.x - aK.x, aL.y - aK.y, aL.z - aK.z
+		local aB = t(ay * ay + aA * aA)
+		if ao ~= o then
+			local ai = ay * ay + aA * aA - ao * ao
+			local aj = 2 * (aK.x * ay + aK.z * aA - am.x * ay - am.z * aA)
+			local ah = aK.x * aK.x + aK.z * aK.z + am.x * am.x + am.z * am.z - 2 * am.x * aK.x - 2 * am.z * aK.z
+			local aC = aj * aj - 4 * ai * ah
+			local a9 = (-aj + t(aC)) / (2 * ai)
+			local aa = (-aj - t(aC)) / (2 * ai)
+			au = _ + p(a9, aa)
+		end
+		local aM = q(au * av, aB)
+		if ap and ap > 0 then
+			radius = t(2 * aM * aM - 2 * aM * aM * l(ap))
+		end
+		ay = ay / aB * av
+		az = az / aB
+		aA = aA / aB * av
+		local aN = aK.x + aM * ay / av
+		local aO = aK.y + aM * az
+		local aP = aK.z + aM * aA / av
+		as = Vector(aN, aO, aP)
+		au = _ + GetDistance(as, am) / ao
+		if aJ and #aJ >= 2 and ao ~= o then
+			local aQ = 0
+			for A = 1, #aJ - 1 do
+				local aR, aS = aJ[A], aJ[A + 1]
+				local a9, w, aa, x, a8 = VectorMovementCollision(aR, aS, av, am, ao)
+				local aT = aQ + a8 / av
+				if not aa or not (aQ <= aa) or not (aa <= aT) or not aa then
+					aa = nil
+				end
+				a9 = a9 and aQ <= a9 and a9 <= aT and a9 or nil
+				local ae = a9 and aa and q(a9, aa) or a9 or aa
+				if ae then
+					as = ae == a9 and Vector(w.x, aq.y, w.z) or Vector(x.x, aq.y, x.z)
+					au = _ + ae
+					break
+				end
+				aQ = aT
+			end
+		end
+	else
+		if ao ~= o then
+			as = aq + Vector(Vector(an.pathing.endPos) - aq):Normalized() * av / 2 * (_ + GetDistance(aq, am) / ao)
+		else
+			as = aq + Vector(Vector(an.pathing.endPos) - aq):Normalized() * av / 2 * _
+		end
+		au = _ + GetDistance(as, am) / ao
+	end
+	radius = radius * 2
+	at = q(10, k(radius / av * 1.1 / au * 10))
+	local aU = am:AngleBetween(aq, an.posTo)
+	if aU and aU > 0 then
+		at = k(g(at * (1 - aU / 180)))
+	end
+	if self:IsSlowed(an) then
+		at = q(10, k(at * 1.5))
+	end
+	if not an.visible then
+		at = n(at / 2)
+	end
+	if collision and self:Collision(am, as, radius / 1.5) or MapPosition:inWall(as) then
+		at = -1
+	elseif GetDistanceSqr(aq, am) > C * C then
+		at = 0
+	end
+	return as, at, au
+end
+
+function PremiumPrediction:GetLinearAOEPrediction(am, an, ao, C, _, radius, ap, collision)
+	local as, at, au = self:GetPrediction(am, an, ao, C, _, radius, ap, collision)
+	local am = Vector(am.pos)
+	local aV = 2 * radius * 2 * radius
+	local aW = as
+	local aX, aY = as.x, as.z
+	do
+		local ay, aA = aX - am.x, aY - am.z
+		local aB = t(ay * aA + aA * aA)
+		aX = aX + ay / aB * C
+		aY = aY + aA / aB * C
+	end
+	for A, aZ in pairs(GetEnemyHeroes()) do
+		if ValidTarget(aZ) and aZ ~= an then
+			local a_, b0, b1 = self:GetPrediction(am, aZ, ao, C, _, radius, ap, collision)
+			local ah = (a_.x - am.x) * (aX - am.x) + (a_.z - am.z) * (aY - am.z)
+			if C > GetDistance(a_, am) then
+				local ae = ah / (C * C)
+				if ae > 0 and ae < 1 then
+					local b2 = Vector(am.x + ae * (aX - am.x), 0, am.z + ae * (aY - am.z))
+					local b3 = (a_.x - b2.x) * (a_.x - b2.x) + (a_.z - b2.z) * (a_.z - b2.z)
+					if aV > b3 then
+						aW = Vector(0.5 * (aW.x + a_.x), aW.y, 0.5 * (aW.z + a_.z))
+						aV = aV - 0.5 * b3
+					end
+				end
+			end
+		end
+	end
+	return as, at
+end
+
+function PremiumPrediction:GetCircularAOEPrediction(am, an, ao, C, _, radius, ap, collision)
+	local as, at, au = self:GetPrediction(am, an, ao, C, _, radius, ap, collision)
+	local am = Vector(am.pos)
+	local aV = 2 * radius * 2 * radius
+	local aW = as
+	local aX, aY = as.x, as.z
+	for A, aZ in pairs(GetEnemyHeroes()) do
+		if ValidTarget(aZ) and aZ ~= an then
+			local a_, b0, b1 = self:GetPrediction(am, aZ, ao, C, _, radius, ap, collision)
+			local b4 = (a_.x - aX) * (a_.x - aX) + (a_.z - aY) * (a_.z - aY)
+			if aV > b4 then
+				aW = Vector(0.5 * (aW.x + a_.x), aW.y, 0.5 * (aW.z + a_.z))
+				aV = aV - 0.5 * b4
+			end
+		end
+	end
+	as = aW
+	return as, at
+end
+
+function PremiumPrediction:GetConicAOEPrediction(am, an, ao, C, _, radius, ap, collision)
+	if ap and ap > 0 then
+		local as, at, au = self:GetPrediction(am, an, ao, C, _, radius, ap, collision)
+		local am = Vector(am.pos)
+		local aV = 2 * ap
+		local aW = as
+		local aX, aY = as.x, as.z
+		local ay, aA = aX - am.x, aY - am.z
+		do
+			local aB = t(ay * aA + aA * aA)
+			aX = aX + ay / aB * C
+			aY = aY + aA / aB * C
+		end
+		for A, aZ in pairs(GetEnemyHeroes()) do
+			if ValidTarget(aZ) and aZ ~= an then
+				local a_, b0, b1 = self:GetPrediction(am, aZ, ao, C, _, radius, ap, collision)
+				local b5 = GetDistance(a_, am)
+				if C > b5 then
+					local b6 = GetDistance(aW, am)
+					local b7 = (aW.x - am.x) * (a_.x - am.x) + (aW.z - am.z) * (a_.z - am.z)
+					local b8 = m(j(b7 / (b5 * b6)))
+					if aV > b8 then
+						aW = Vector(0.5 * (aW.x + a_.x), aW.y, 0.5 * (aW.z + a_.z))
+						aV = b8
+					end
+				end
+			end
+		end
+		as = aW
+		return as, at
+	end
+end
+
+function PremiumPrediction:GetWaypoints(an)
+	local aJ = {}
+	local ar = an.networkID
+	if ActiveWaypoints[ar] and #ActiveWaypoints[ar] > 0 then
+		for A, b9 in pairs(ActiveWaypoints[ar]) do
+			local ba = b9.endPos
+			if ba then
+				u(aJ, ba)
+			end
+		end
+	end
+	if #aJ > 0 then
+		return aJ
+	end
+	return nil
+end
+
+function PremiumPrediction:ProcessWaypoint(bb)
+	for A = 1, #bb do
+		local an = bb[A]
+		local ar = an.networkID
+		if not ActiveWaypoints[ar] then
+			ActiveWaypoints[ar] = {}
+		end
+		if an.pathing.hasMovePath then
+			local bc = #ActiveWaypoints[ar]
+			if bc > 0 then
+				local ax = Vector(an.pathing.endPos)
+				local bd = ActiveWaypoints[ar][bc].endPos
+				if not IsInRange(bd, ax, 10) then
+					u(ActiveWaypoints[ar], {
+						startPos = Vector(an.pathing.startPos),
+						endPos = Vector(an.pathing.endPos),
+						dashSpeed = an.pathing.dashSpeed,
+						ticker = GetTickCount()
+					})
+				end
+			else
+				u(ActiveWaypoints[ar], {
+					startPos = Vector(an.pathing.startPos),
+					endPos = Vector(an.pathing.endPos),
+					dashSpeed = an.pathing.dashSpeed,
+					ticker = GetTickCount()
+				})
+			end
+			for A, b9 in pairs(ActiveWaypoints[ar]) do
+				if b9.endPos then
+					if A > 5 then
+						v(ActiveWaypoints[ar], 1)
+					end
+					if GetTickCount() > b9.ticker + 350 then
+						v(ActiveWaypoints[ar], A)
+					end
+				end
+			end
+		else
+			for A = 0, 5 do
+				v(ActiveWaypoints[ar], A)
+			end
+		end
+	end
+end
+
+function PremiumPrediction:Collision(aw, ax, radius)
+	for A = 1, e() do
+		local be = f(A)
+		if be and be.isEnemy then
+			local W, T, V = VectorPointProjectionOnLineSegment(aw, ax, be.pos)
+			if V and GetDistanceSqr(W, be.pos) < (be.boundingRadius * 2 + radius) ^ 2 then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+function PremiumPrediction:IsAttacking(an)
+	if an.activeSpell then
+		return b() < an.activeSpell.startTime + an.activeSpell.windup, an.activeSpell.startTime + an.activeSpell.windup - b()
+	end
+end
+
+function PremiumPrediction:IsImmobile(an)
+	for A = 0, an.buffCount do
+		local bf = an:GetBuff(A)
+		if bf and (bf.type == 5 or bf.type == 11 or bf.type == 18 or bf.type == 22 or bf.type == 24 or bf.type == 28 or bf.type == 29) and 0 < bf.duration then
+			return b() < bf.expireTime, bf.expireTime - b()
+		end
+	end
+	return false
+end
+
+function PremiumPrediction:IsSlowed(an)
+	for A = 0, an.buffCount do
+		local bf = an:GetBuff(A)
+		if bf and bf.type == 10 and 0 < bf.duration then
+			return b() < bf.expireTime
+		end
+	end
+	return false
+end
+
+function PremiumPrediction:IsDashing(an)
+	return an.pathing.isDashing
+end
+
+function PremiumPrediction:IsMoving(an)
+	return an.pathing.hasMovePath
+end
     
     --WR PREDICTION USAGE ---
+	
     local _STUN = 5
     local _TAUNT = 8    
     local _SLOW = 10    
@@ -60,7 +590,8 @@ require "MapPosition"
     local _SUPRESS = 24        
     local _AIRBORNE = 30
     local _SLEEP = 18
-    ---WR PREDICTION USAGE -----
+	
+    ---WR PREDICTION USAGE ----- 
 
     local DamageReductionTable = {
         ['Braum'] = {
@@ -140,7 +671,7 @@ require "MapPosition"
 		PassivePercentMod,
         GetItemSlot,
         Angle,
-        Saga
+        Flux
     
     local sqrt = math.sqrt
 	GetDistanceSqr = function(p1, p2)
@@ -451,19 +982,19 @@ end
         
         TotalHeroes = GetEnemyHeroes()
         IDListNumber = GetHeroesWithBitches()
-        Saga_Menu()
+        FluxMenu()
 
         if #_EnemyHeroes > 0 then
             for i = 1, TotalHeroes do
                 local hero = _EnemyHeroes[i]
-            Saga.KillSteal.rKS:MenuElement({id = hero.charName, name = "Use R on: "..hero.charName, value = true})
+            Flux.KillSteal.rKS:MenuElement({id = hero.charName, name = "Use R on: "..hero.charName, value = true})
             end
         end
 
-        if Game.Timer() > Saga.Rate.champion:Value() and #_EnemyHeroes == 0 then
+        if Game.Timer() > Flux.Rate.champion:Value() and #_EnemyHeroes == 0 then
         for i = 1, TotalHeroes do
             local hero = _EnemyHeroes[i]
-        Saga.KillSteal.rKS:MenuElement({id = hero.charName, name = "Use R on: "..hero.charName, value = true})
+        Flux.KillSteal.rKS:MenuElement({id = hero.charName, name = "Use R on: "..hero.charName, value = true})
         end
     end
         
@@ -479,6 +1010,9 @@ end
 		elseif _G.GOS then
 			orbwalkername = "Noddy orbwalker"
 			orb = _G.GOS
+		elseif _G.gsoSDK then
+			orbwalkername = "Gamesteron orbwalker"
+			orb = _G.gsoSDK
 		else
 			orbwalkername = "Orbwalker not found"
 		end
@@ -488,11 +1022,11 @@ end
 LocalCallbackAdd(
     'Tick',
     function()
-            if Game.Timer() > Saga.Rate.champion:Value() and #_EnemyHeroes == 0 then
+            if Game.Timer() > Flux.Rate.champion:Value() and #_EnemyHeroes == 0 then
                 TotalHeroes = GetEnemyHeroes()
                 for i = 1, TotalHeroes do
                     local hero = _EnemyHeroes[i]
-                Saga.KillSteal.rKS:MenuElement({id = hero.charName, name = "Use R on: "..hero.charName, value = true})
+                Flux.KillSteal.rKS:MenuElement({id = hero.charName, name = "Use R on: "..hero.charName, value = true})
                 end
                 IDListNumber = GetHeroesWithBitches()
 
@@ -508,20 +1042,20 @@ LocalCallbackAdd(
 
             
 
-            if Saga.Auto.useAutoQ:Value() then
+            if Flux.Combo.useAutoQ:Value() then
                 AutoQ()
             end
-            if Saga.Combo.comboActive:Value() and Ekko.attackData.state ~= 2 then
+            if Flux.Combo.comboActive:Value() and Ekko.attackData.state ~= 2 then
                 Combo()
             end
-            if Saga.Harass.harassActive:Value() then
+            if Flux.Harass.harassActive:Value() then
                 HarassMode()
             end
-            if Saga.Clear.clearActive:Value() then
+            if Flux.Clear.clearActive:Value() then
                 ClearMode()
                 ClearJungle()
             end
-            if Saga.Lasthit.lasthitActive:Value() then
+            if Flux.Lasthit.lasthitActive:Value() then
                 LastHitMode()
             end
             UpdateDamage()
@@ -534,10 +1068,10 @@ LocalCallbackAdd(
 
         LocalCallbackAdd(
     'Draw', function()
-        if Saga.Drawings.Q.Enabled:Value() then Draw.Circle(Ekko.pos, Q.Range, 0, Saga.Drawings.Q.Color:Value()) end
-        if Saga.Drawings.W.Enabled:Value() then Draw.Circle(Ekko.pos, W.Range, 0, Saga.Drawings.W.Color:Value()) end
-       -- if Saga.Drawings.E.Enabled:Value() then Draw.Circle(Ekko.pos, E.Range, 0, Saga.Drawings.E.Color:Value()) end
-       -- if Saga.Drawings.R.Enabled:Value() then Draw.Circle(Ekko.pos, R.Range, 0, Saga.Drawings.R.Color:Value()) end
+        if Flux.Drawings.Q.Enabled:Value() then Draw.Circle(Ekko.pos, Q.Range, 0, Flux.Drawings.Q.Color:Value()) end
+        if Flux.Drawings.W.Enabled:Value() then Draw.Circle(Ekko.pos, W.Range, 0, Flux.Drawings.W.Color:Value()) end
+       -- if Flux.Drawings.E.Enabled:Value() then Draw.Circle(Ekko.pos, E.Range, 0, Flux.Drawings.E.Color:Value()) end
+       -- if Flux.Drawings.R.Enabled:Value() then Draw.Circle(Ekko.pos, R.Range, 0, Flux.Drawings.R.Color:Value()) end
         
     end)
 
@@ -570,35 +1104,24 @@ Combo = function()
 local target = GetTarget(1100)
 
 local targetQ = GetTarget(Q.Range)
-    if targetQ then
-        if Ekko.attackData.state ~= 2 and UseSpell(0) == 0 and targetQ.pos:DistanceTo() <= Q.Range  and Saga.Combo.UseQ:Value() then
-            if UseSpell(2) == 0 and Saga.Combo.UseE:Value() then return end 
-            local Qpos, qcpos, hitchance = GetBestCastPosition(targetQ, Q)
-            if hitchance >= 2 then
-            if Qpos:DistanceTo() > Q.Range then 
-                Qpos = Ekko.pos + (Qpos - Ekko.pos):Normalized()*Q.Range
-                end
-            Qpos = Ekko.pos + (Qpos - Ekko.pos):Normalized()*(GetDistance(Qpos, Ekko.pos) + 0.5*targetQ.boundingRadius)
-            if Qpos:To2D().onScreen then
-                CastSpell(HK_Q, Qpos, Q.Range, Q.Delay * 1000) 
-            else
-                CastSpellMM(HK_Q, Qpos, Q.Range, Q.Delay * 1000)
-            end
-            end
-          end
-    end
+				local CastPos, HitChance, TimeToHit = PremiumPrediction:GetLinearAOEPrediction(Ekko, targetQ, 1075, 950, 0.25, 60, 45, false)
+			if CastPos and HitChance >= 5 and ValidTarget(target, 1000) and Game.CanUseSpell(_Q) == 0 then
+				Control.CastSpell(HK_Q, CastPos)			
+end 
+
                -----------------------------------------------W USAGE---------------------------------------------	
 local targetW = GetTarget(W.Range)
-	if targetW then
-		 if not target then return end
-		if Saga.Combo.UseW:Value() and Ready(_R) and targetW.pos:DistanceTo(targetW.pos) < 1150 then
-self:CastW(targetW)
+				local CastPos, HitChance, TimeToHit = PremiumPrediction:GetCircularAOEPrediction(Ekko, targetW, 1650, 1600, 3.75, 375, 45, false)
+			if CastPos and HitChance >= 5 and ValidTarget(target, 800) and Game.CanUseSpell(_W) == 0 then
+				Control.CastSpell(HK_W, CastPos)
+				
 end
-
-HarassMode = function()
+end
+				
+				HarassMode = function()
     local targetQ = GetTarget(Q.Range)
                 if targetQ then
-                    if UseSpell(0) == 0 and targetQ.pos:DistanceTo() < Q.Range and Saga.Harass.UseQ:Value()then 
+                    if UseSpell(0) == 0 and targetQ.pos:DistanceTo() < Q.Range and Flux.Harass.UseQ:Value()then 
                     local Qpos, posQC, hitchance = GetBestCastPosition(targetQ, Q)
                     if Qpos:DistanceTo() > Q.Range then 
                     Qpos = Ekko.pos + (Qpos - Ekko.pos):Normalized()*Q.Range
@@ -612,7 +1135,7 @@ HarassMode = function()
                 local targetW = GetTarget(W.Range)
                 if targetW then
 
-                if not hasball and Ekko.attackData.state ~= 2 and UseSpell(1) == 0 and targetW.pos:DistanceTo() <= W.Range and GotBuff(myHero, "syndrawtooltip") == 0 and Saga.Harass.UseW:Value() and os.clock() - wCounter > .7 then
+                if not hasball and Ekko.attackData.state ~= 2 and UseSpell(1) == 0 and targetW.pos:DistanceTo() <= W.Range and GotBuff(myHero, "syndrawtooltip") == 0 and Flux.Harass.UseW:Value() and os.clock() - wCounter > .7 then
                     if IDList then 
                     local bitch, bitchpos = findPet() end
                     if bitch  then
@@ -635,7 +1158,7 @@ HarassMode = function()
                     end
                     wCounter = os.clock()
                 end
-            if UseSpell(1) == 0 and targetW.pos:DistanceTo() <= W.Range and Saga.Harass.UseW:Value() and os.clock() - wCounter > 1 then
+            if UseSpell(1) == 0 and targetW.pos:DistanceTo() <= W.Range and Flux.Harass.UseW:Value() and os.clock() - wCounter > 1 then
                 local targetW2 = GetTarget(W.Range)
                 local W2Pos, WCPos, hitchance = GetBestCastPosition(targetW2, W)
                 if W2Pos:DistanceTo() > W.Range and hitchance >= 2 then 
@@ -669,7 +1192,7 @@ ClearMode = function()
                 end	
         end	
             local BestPos, BestHit = GetBestCircularCastPos(Q, nil, qMinions)
-            if BestHit and BestHit >= Saga.Clear.QCount:Value() and Saga.Clear.UseQ:Value() and Game.CanUseSpell(0) == 0 then
+            if BestHit and BestHit >= Flux.Clear.QCount:Value() and Flux.Clear.UseQ:Value() and Game.CanUseSpell(0) == 0 then
                 Control.CastSpell(HK_Q, BestPos) end
             
     end
@@ -705,7 +1228,7 @@ ClearJungle = function()
 end
 
 LastHitMode = function()
-    if Game.CanUseSpell(0) == 0 and Saga.Lasthit.UseQ:Value() then
+    if Game.CanUseSpell(0) == 0 and Flux.Lasthit.UseQ:Value() then
             for i = 1, Game.MinionCount() do
             local minion = Game.Minion(i)
             if Game.CanUseSpell(0) ~= 0 then dmgQ = 0 else
@@ -715,7 +1238,7 @@ LastHitMode = function()
                     qDMG = CalcMagicalDamage(myHero,minion,264.5 + 0.7475 * myHero.ap)
                 end
             end
-            if minion.pos:DistanceTo() <= Q.Range and Saga.Lasthit.UseQ:Value() and minion.isEnemy and not minion.dead and Game.CanUseSpell(0) == 0 then
+            if minion.pos:DistanceTo() <= Q.Range and Flux.Lasthit.UseQ:Value() and minion.isEnemy and not minion.dead and Game.CanUseSpell(0) == 0 then
                 if dmgQ >= minion.health then
                     Control.CastSpell(HK_Q,minion)
                 end
@@ -1166,65 +1689,68 @@ UpdateDamage = function()
         Tard_RangeCount = clock()
     end
 end
+----------
+--Menu ---
+----------
+FluxMenu = function()
+	Flux = MenuElement({type = MENU, id = "Ekko", name = "Ekko the Boy Who Shattered Time:BETA", icon = FluxIcon})
+	MenuElement({ id = "blank", type = SPACE ,name = "Version BETA 0.0.1"})
+-----------	
+--Combo ---
+-----------	
+    Flux:MenuElement({id = "Combo", name = "Combo", type = MENU})
+    Flux.Combo:MenuElement({id = "UseQ", name = "Q", value = true})
+	Flux.Combo:MenuElement({id = "UseW", name = "W", value = true})
+    Flux.Combo:MenuElement({id = "UseE", name = "QE", value = true})
+    Flux.Combo:MenuElement({id = "UseER", name = "E", value = true})
+    Flux.Combo:MenuElement({id = "UseR", name = "R", value = true})
+	Flux.Combo:MenuElement({id = "useAutoQ", name = "Enable", key = string.byte("M"), toggle = false})
+	Flux.Combo:MenuElement({id = "comboActive", name = "Combo key", key = string.byte(" ")})
+------------
+--Harass ---	
+------------	
+    Flux:MenuElement({id = "Harass", name = "Harass", type = MENU})
+	Flux.Harass:MenuElement({id = "UseQ", name = "Q", value = true})
+	Flux.Harass:MenuElement({id = "harassActive", name = "Harass Key", key = string.byte("C")})
+---------------	
+--LaneClear ---	
+---------------	
+	Flux:MenuElement({id = "Clear", name = "Clear", type = MENU})
+	Flux.Clear:MenuElement({id = "UseQ", name = "Q", value = true})
+	Flux.Clear:MenuElement({id = "QCount", name = "Use Q on X minions", value = 3, min = 1, max = 4, step = 1})
+	Flux.Clear:MenuElement({id = "clearActive", name = "Clear key", key = string.byte("V")})
+-------------   
+--LastHit ---   
+------------- 
+	Flux:MenuElement({id = "Lasthit", name = "Lasthit", type = MENU})
+	Flux.Lasthit:MenuElement({id = "UseQ", name = "Q", value = true})
+    Flux.Lasthit:MenuElement({id = "lasthitActive", name = "Lasthit key", key = string.byte("X")})
+------------------
+--Recache Rate ---
+------------------
+    Flux:MenuElement({id = "Rate", name = "Recache Rate", type = MENU})
+	Flux.Rate:MenuElement({id = "champion", name = "Value", value = 30, min = 1, max = 120, step = 1})
+--------------
+--Drawings ---
+--------------
+    Flux:MenuElement({id = "Drawings", name = "Drawings", type = MENU})
+    Flux.Drawings:MenuElement({id = "Q", name = "Draw Q range", type = MENU})
+    Flux.Drawings.Q:MenuElement({id = "Enabled", name = "Enabled", value = true})       
+    Flux.Drawings.Q:MenuElement({id = "Width", name = "Width", value = 1, min = 1, max = 5, step = 1})
+    Flux.Drawings.Q:MenuElement({id = "Color", name = "Color", color = Draw.Color(200, 255, 255, 255)})
 
-Saga_Menu = 
-function()
-	Saga = MenuElement({type = MENU, id = "Ekko", name = "Ekko's noob Object", icon = SagaIcon})
-	MenuElement({ id = "blank", type = SPACE ,name = "Version 3.2.1"})
-	--Combo
-    Saga:MenuElement({id = "Combo", name = "Combo", type = MENU})
-    Saga.Combo:MenuElement({id = "UseQ", name = "Q", value = true})
-	Saga.Combo:MenuElement({id = "UseW", name = "W", value = true})
-    Saga.Combo:MenuElement({id = "UseE", name = "QE", value = true})
-    Saga.Combo:MenuElement({id = "UseER", name = "E", value = true})
-    Saga.Combo:MenuElement({id = "UseR", name = "R", value = true})
-	Saga.Combo:MenuElement({id = "comboActive", name = "Combo key", key = string.byte(" ")})
+    Flux.Drawings:MenuElement({id = "E", name = "Draw Long E range", type = MENU})
+    Flux.Drawings.E:MenuElement({id = "Enabled", name = "Enabled", value = true})       
+    Flux.Drawings.E:MenuElement({id = "Width", name = "Width", value = 1, min = 1, max = 5, step = 1})
+    Flux.Drawings.E:MenuElement({id = "Color", name = "Color", color = Draw.Color(200, 255, 255, 255)})
 
-    Saga:MenuElement({id = "Harass", name = "Harass", type = MENU})
-	Saga.Harass:MenuElement({id = "UseQ", name = "Q", value = true})
-	Saga.Harass:MenuElement({id = "UseW", name = "W", value = true})
-	Saga.Harass:MenuElement({id = "harassActive", name = "Harass Key", key = string.byte("C")})
-	
-	Saga:MenuElement({id = "Clear", name = "Clear", type = MENU})
-	Saga.Clear:MenuElement({id = "UseQ", name = "Q", value = true})
-	Saga.Clear:MenuElement({id = "QCount", name = "Use Q on X minions", value = 3, min = 1, max = 4, step = 1})
-	Saga.Clear:MenuElement({id = "UseW", name = "W [Not Working]", value = true})
-	Saga.Clear:MenuElement({id = "WCount", name = "Use W on X minions [Not Working]", value = 3, min = 1, max = 4, step = 1})
-	Saga.Clear:MenuElement({id = "clearActive", name = "Clear key", key = string.byte("V")})
+    Flux.Drawings:MenuElement({id = "W", name = "Draw W range", type = MENU})
+    Flux.Drawings.W:MenuElement({id = "Enabled", name = "Enabled", value = true})       
+    Flux.Drawings.W:MenuElement({id = "Width", name = "Width", value = 1, min = 1, max = 5, step = 1})
+    Flux.Drawings.W:MenuElement({id = "Color", name = "Color", color = Draw.Color(200, 255, 255, 255)})
     
-
-    Saga:MenuElement({id = "KillSteal", name = "KillSteal", type = MENU})
-    Saga.KillSteal:MenuElement({id = "rKS", name = "R KS on: ", value = false, type = MENU})
-    
-
-	Saga:MenuElement({id = "Lasthit", name = "Lasthit", type = MENU})
-	Saga.Lasthit:MenuElement({id = "UseQ", name = "Q", value = true})
-    Saga.Lasthit:MenuElement({id = "lasthitActive", name = "Lasthit key", key = string.byte("X")})
-    
-    Saga:MenuElement({id = "Auto", name = "AutoQ", type = MENU})
-    Saga.Auto:MenuElement({id = "useAutoQ", name = "Enable", key = string.byte("M"), toggle = true})
-
-    Saga:MenuElement({id = "Rate", name = "Recache Rate", type = MENU})
-	Saga.Rate:MenuElement({id = "champion", name = "Value", value = 30, min = 1, max = 120, step = 1})
-    
-    Saga:MenuElement({id = "Drawings", name = "Drawings", type = MENU})
-    Saga.Drawings:MenuElement({id = "Q", name = "Draw Q range", type = MENU})
-    Saga.Drawings.Q:MenuElement({id = "Enabled", name = "Enabled", value = true})       
-    Saga.Drawings.Q:MenuElement({id = "Width", name = "Width", value = 1, min = 1, max = 5, step = 1})
-    Saga.Drawings.Q:MenuElement({id = "Color", name = "Color", color = Draw.Color(200, 255, 255, 255)})
-
-    Saga.Drawings:MenuElement({id = "E", name = "Draw Long E range", type = MENU})
-    Saga.Drawings.E:MenuElement({id = "Enabled", name = "Enabled", value = true})       
-    Saga.Drawings.E:MenuElement({id = "Width", name = "Width", value = 1, min = 1, max = 5, step = 1})
-    Saga.Drawings.E:MenuElement({id = "Color", name = "Color", color = Draw.Color(200, 255, 255, 255)})
-
-    Saga.Drawings:MenuElement({id = "W", name = "Draw W range", type = MENU})
-    Saga.Drawings.W:MenuElement({id = "Enabled", name = "Enabled", value = true})       
-    Saga.Drawings.W:MenuElement({id = "Width", name = "Width", value = 1, min = 1, max = 5, step = 1})
-    Saga.Drawings.W:MenuElement({id = "Color", name = "Color", color = Draw.Color(200, 255, 255, 255)})
-    
-    Saga.Drawings:MenuElement({id = "R", name = "Draw R range", type = MENU})
-    Saga.Drawings.R:MenuElement({id = "Enabled", name = "Enabled", value = true})       
-    Saga.Drawings.R:MenuElement({id = "Width", name = "Width", value = 1, min = 1, max = 5, step = 1})
-    Saga.Drawings.R:MenuElement({id = "Color", name = "Color", color = Draw.Color(200, 255, 255, 255)})
+    Flux.Drawings:MenuElement({id = "R", name = "Draw R range", type = MENU})
+    Flux.Drawings.R:MenuElement({id = "Enabled", name = "Enabled", value = true})       
+    Flux.Drawings.R:MenuElement({id = "Width", name = "Width", value = 1, min = 1, max = 5, step = 1})
+    Flux.Drawings.R:MenuElement({id = "Color", name = "Color", color = Draw.Color(200, 255, 255, 255)})
 end
