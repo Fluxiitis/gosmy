@@ -1,114 +1,128 @@
 if myHero.charName ~= "Ekko" then return end
 
+require "PremiumPrediction"
 require "MapPosition"
-local Ekko = myHero
-local Latency = Game.Latency
-local ping = Game.Latency()/1000
-local Ready = Game.CanUseSpell
-local ObjectCount = Game.ObjectCount
-local Object = Game.Object
-local clock = os.clock
-local Timer = Game.Timer
-local LocalCallbackAdd = Callback.Add
-local IDList = {}
-local _EnemyHeroes
-local _OnVision = {}
-local TotalHeroes
-local TEAM_ALLY = myHero.team
-local TEAM_ENEMY = 300 - TEAM_ALLY
-local bitchList = {"Annie", "Malzahar", "Zyra", "Ivern", "Kalista", "Yorick", "Heimerdinger"}
-local myCounter = 1
-local Tard_RangeCount = 0 -- <3 yaddle
-local hpredTick = 0
-local wCounter = 0
-local _movementHistory = {}
-local ignite
-local igniteSlot
-local Cast = Control.CastSpell
-local DrawCircle = Draw.Circle
-local DrawColor = Draw.Color
-local DrawLine = Draw.Line
-local DrawText = Draw.Text
-local IsKeyDown = Control.IsKeyDown
-local KeyUp = Control.KeyUp
-local KeyDown = Control.KeyDown
-local Mouse = Control.mouse_event
-local Move = Control.Move
-local SetCursorPos = Control.SetCursorPos
-local HeroCount = Game.HeroCount
-local Hero = Game.Hero
-local MinionCount = Game.MinionCount
-local Minion = Game.Minion
-local MissileCount = Game.MissileCount
-local Missile = Game.Missile
-local Vector = Vector
-local visionTick = GetTickCount()
+  local Ekko = myHero
+	local Latency = Game.Latency
+    local ping = Game.Latency()/1000
+	local Ready = Game.CanUseSpell
+    local ObjectCount = Game.ObjectCount
+    local Object = Game.Object
+    local clock = os.clock
+    local Timer = Game.Timer
+    local LocalCallbackAdd = Callback.Add
+    local IDList = {}
+    local _EnemyHeroes
+    local _OnVision = {}
+    local TotalHeroes
+    local TEAM_ALLY = myHero.team
+    local TEAM_ENEMY = 300 - TEAM_ALLY
+    local bitchList = {"Annie", "Malzahar", "Zyra", "Ivern", "Kalista", "Yorick", "Heimerdinger"}
+    local myCounter = 1
+    local Tard_RangeCount = 0 -- <3 yaddle
+    local hpredTick = 0
+    local wCounter = 0
+    local _movementHistory = {}
+	local ignite
+	local igniteSlot
+	local Cast = Control.CastSpell
+	local DrawCircle = Draw.Circle
+	local DrawColor = Draw.Color
+	local DrawLine = Draw.Line
+	local DrawText = Draw.Text
+	local IsKeyDown = Control.IsKeyDown
+	local KeyUp = Control.KeyUp
+	local KeyDown = Control.KeyDown
+	local Mouse = Control.mouse_event
+	local Move = Control.Move
+	local SetCursorPos = Control.SetCursorPos
+	local HeroCount = Game.HeroCount
+	local Hero = Game.Hero
+	local MinionCount = Game.MinionCount
+	local Minion = Game.Minion
+	local MissileCount = Game.MissileCount
+	local Missile = Game.Missile
+	local Vector = Vector
+	local visionTick = GetTickCount()
 	--
-local SDK = _G.SDK
-	local Orbwalker = SDK.Orbwalker 
-	local ObjectManager = SDK.ObjectManager
-	local TargetSelector = SDK.TargetSelector
-	local HealthPrediction = SDK.HealthPrediction
+	local SDK = _G.SDK
+    local ObjectManager = SDK.ObjectManager
+    local TargetSelector = SDK.TargetSelector
+    local HealthPrediction = SDK.HealthPrediction
 	--
 	local floor = math.floor
 	local max = math.max	
 	local huge = math.huge
-	local pi = math.pi
-	local atan2 = math.atan2
-	local min = math.min
+    local pi = math.pi
+    local atan2 = math.atan2
+    local min = math.min
 	local ceil = math.ceil
 	local sqrt = math.sqrt
 	
-local Q = {Range = 950, 
-	Width = 50,
-	Delay = 0.25 + ping,
-	Speed = 1650,
-	Collision = false,
-	Type = line,
-	Radius = 60, 
-	From = Ekko}
-local W = {Range = 1600, 
-	Delay = 3.75, 
-	Speed = 1650, 
-	Radius = 375, 
-	Type = circular, 
-	From = Ekko}   
-local E = {Range = 600,
-	Delay = 0.25, 
-	Speed = 2500,
-	Radius = 100, 
-	Type = line, 
-	From = Ekko}
-local R = {Range = 1600, 
-	Delay = 0.25, 
-	Speed = 1650, 
-	Radius = 375}
-local Qdamage = {100,135,180,220,260}
 	
-local
-	GetEnemyHeroes,
-	findEmemy,
-	ClearJungle,
-	HarassMode,
-	ClearMode,
-	validTarget,
-	ValidTargetM,
-	GetDistanceSqr,
-	GetDistance,
-	GetDistance2D,
-	DamageReductionMod,
-	OnVision,
-	OnVisionF,
-	CalcMagicalDamage,
-	CalcPhysicalDamage,
-	GetTarget,
-	Priority,
-	PassivePercentMod,
-	GetItemSlot,
-	Angle,
-	GetPred,
-	Orb,
-	Flux
+	local Q = {Range = 950, 
+				Width = 50,
+				Delay = 0.25 + ping,
+				Speed = 1650,
+				Collision = false,
+				Type = line,
+				Radius = 60, 
+				From = Ekko}
+    local W = {Range = 1600, 
+				Delay = 3.75, 
+				Speed = 1650, 
+				Radius = 375, 
+				Type = circular, 
+				From = Ekko}   
+	local E = {Range = 600,
+				Delay = 0.25, 
+				Speed = 2500,
+				Radius = 100, 
+				Type = line, 
+				From = Ekko}
+	local R = {Range = 1600, 
+				Delay = 0.25, 
+				Speed = 1650, 
+				Radius = 375}
+	local Qdamage = {100,135,180,220,260}
+	
+	local
+		GetEnemyHeroes,
+		findEmemy,
+		ClearJungle,
+		HarassMode,
+		ClearMode,
+		validTarget,
+		ValidTargetM,
+		GetDistanceSqr,
+		GetDistance,
+		GetDistance2D,
+		DamageReductionMod,
+		OnVision,
+		OnVisionF,
+		CalcMagicalDamage,
+		CalcPhysicalDamage,
+		GetTarget,
+		Priority,
+		PassivePercentMod,
+		GetItemSlot,
+		Angle,
+		GetPred,
+		Orb,
+		Flux
+		
+	local 
+		Orbwalker = SDK.Orbwalker
+			SDKCombo = SDK.ORBWALKER_MODE_COMBO
+			SDKHarass = SDK.ORBWALKER_MODE_HARASS
+			SDKJungleClear = SDK.ORBWALKER_MODE_JUNGLECLEAR
+			SDKJungleClear = SDK.ORBWALKER_MODE_JUNGLECLEAR
+			SDKLaneClear = SDK.ORBWALKER_MODE_LANECLEAR
+			SDKLastHit = SDK.ORBWALKER_MODE_LASTHIT
+			SDKFlee = SDK.ORBWALKER_MODE_FLEE
+			SDKSelector = SDK.TargetSelector
+			SDKMagicDamage = _G.SDK.DAMAGE_TYPE_MAGICAL
+			SDKPhysicalDamage = _G.SDK.DAMAGE_TYPE_PHYSICAL
 		
 --------------------------------------------------------------------------------------------------------------------------------		
 --------------------------------------------------------------------------------------------------------------------------------	
@@ -127,9 +141,62 @@ local
     local _SLEEP = 18
 	
     ---WR PREDICTION USAGE ----- 
-    
-local mathsqrt = math.sqrt
-   	local GetDistanceSqr = function(p1, p2)
+---PremiumPrediction---
+function OnDraw()
+	for i = 1, Game.HeroCount() do
+		local unit = Game.Hero(i)
+		if unit.isEnemy and unit.visible then
+			local CastPos, HitChance, TimeToHit = PremiumPrediction:GetPrediction(myHero, unit, 2000, 1150, 0.25, 60, 0, true)
+			if CastPos then
+				Draw.Circle(Vector(CastPos), 100, 1, Draw.Color(192,255,255,255))
+			end
+		end
+	end
+end
+
+
+local ActiveWaypoints = {}
+
+function OnDraw()
+	local unit = myHero
+	local NID = unit.networkID
+	if ActiveWaypoints[NID] and #ActiveWaypoints[NID] > 0 then
+		for i, waypoint in pairs(ActiveWaypoints[NID]) do
+			local endPos1 = waypoint.endPos
+			if endPos1 then
+				Draw.Circle(Vector(endPos1), 100, 1, Draw.Color(192,255,255,255))
+			end
+		end
+	end
+end
+
+function OnTick()
+	local unit = myHero
+	local NID = unit.networkID
+	if not ActiveWaypoints[NID] then ActiveWaypoints[NID] = {} end
+	if unit.pathing.hasMovePath then
+		table.insert(ActiveWaypoints[NID], {startPos = Vector(unit.pathing.startPos), endPos = Vector(unit.pathing.endPos), dashSpeed = unit.pathing.dashSpeed, ticker = GetTickCount()})
+		for i, waypoint in pairs(ActiveWaypoints[NID]) do
+			if waypoint.endPos then
+				if i > 10 then
+					table.remove(ActiveWaypoints[NID], 1)
+				end
+				if GetTickCount() > waypoint.ticker + 1000 then
+					table.remove(ActiveWaypoints[NID], i)
+				end
+			end
+		end
+	else
+		for i = 0, 10 do
+			table.remove(ActiveWaypoints[NID], i)
+		end
+	end
+end
+	
+---------Functions-------------------------------------------------------     
+		
+local sqrt = math.sqrt
+   local GetDistanceSqr = function(p1, p2)
 	p2 = p2 or Ekko
 	p1 = p1.pos or p1
 	p2 = p2.pos or p2	
@@ -138,43 +205,28 @@ local mathsqrt = math.sqrt
 end
 
 local GetDistance = function(p1, p2)		
-	return mathsqrt(GetDistanceSqr(p1, p2))
+	return sqrt(GetDistanceSqr(p1, p2))
 end
     
       
-local GetTarget = function(range,t,pos)
-    	local t = t or "AD"
-   	local pos = pos or Ekko.pos
-   	local target = {}
-    	for i = 1, TotalHeroes do
-    	local hero = _EnemyHeroes[i]
-    	if hero.isEnemy and not hero.dead then
-    	OnVision(hero)
-end
-	if hero.isEnemy and hero.valid and not hero.dead and (OnVision(hero).state == true or (OnVision(hero).state == false and GetTickCount() - OnVision(hero).tick < 650)) and hero.isTargetable and not hero.isImmortal and not (GotBuff(hero, 'FioraW') == 1) and
-	not (GotBuff(hero, 'XinZhaoRRangedImmunity') == 1 and hero.distance < 450) then
-	local heroPos = hero.pos
-	if OnVision(hero).state == false then heroPos = hero.pos + Vector(hero.pos,hero.posTo):Normalized() * ((GetTickCount() - OnVision(hero).tick)/1000 * hero.ms)
-end
-	if GetDistance(pos,heroPos) <= range then
-	if t == "AD" then
-	target[(CalcPhysicalDamage(Ekko,hero,100) / hero.health)*Priority(hero.charName)] = hero
-	elseif t == "AP" then
-	target[(CalcMagicalDamage(Ekko,hero,100) / hero.health)*Priority(hero.charName)] = hero
-	elseif t == "HYB" then
-	target[((CalcMagicalDamage(Ekko,hero,50) + CalcPhysicalDamage(Ekko,hero,50))/ hero.health)*Priority(hero.charName)] = hero
-end
-end
-end
-end
-	local bT = 0
-	for Hero,v in pairs(target) do
-	if Hero > bT then
-	bT = Hero
+GetTarget = function(range)
+
+		if Orb == 1 then
+			if myHero.ap > myHero.totalDamage then
+				return TargetSelector:GetTarget(range, SDKMagicDamage)
+			else
+				return TargetSelector:GetTarget(range, SDKPhysicalDamage)
+			end
+		elseif _G.GOS then
+			if myHero.ap > myHero.totalDamage then
+				return GOS:GetTarget(range, "AP")
+			else
+				return GOS:GetTarget(range, "AD")
+			end
+		elseif _G.gsoSDK then
+			return _G.gsoSDK.TS:GetTarget()
+		end
 	end
-	end
-	if bT ~= 0 then return target[bT]  end
-end
 
 local IsImmobileTarget = function(unit)
 	for i = 0, unit.buffCount do
@@ -187,11 +239,29 @@ end
 end
 	  
 	local GetDistance2D = function(p1,p2)
-    return mathsqrt((p2.x - p1.x)*(p2.x - p1.x) + (p2.y - p1.y)*(p2.y - p1.y))
+    return sqrt((p2.x - p1.x)*(p2.x - p1.x) + (p2.y - p1.y)*(p2.y - p1.y))
+end
+
+local _OnWaypoint = {}
+function OnWaypoint(unit)
+	if _OnWaypoint[unit.networkID] == nil then _OnWaypoint[unit.networkID] = {pos = unit.posTo , speed = unit.ms, time = Game.Timer()} end
+	if _OnWaypoint[unit.networkID].pos ~= unit.posTo then 
+		-- print("OnWayPoint:"..unit.charName.." | "..math.floor(Game.Timer()))
+		_OnWaypoint[unit.networkID] = {startPos = unit.pos, pos = unit.posTo , speed = unit.ms, time = Game.Timer()}
+			DelayAction(function()
+				local time = (Game.Timer() - _OnWaypoint[unit.networkID].time)
+				local speed = GetDistance2D(_OnWaypoint[unit.networkID].startPos,unit.pos)/(Game.Timer() - _OnWaypoint[unit.networkID].time)
+				if speed > 1250 and time > 0 and unit.posTo == _OnWaypoint[unit.networkID].pos and GetDistance(unit.pos,_OnWaypoint[unit.networkID].pos) > 200 then
+					_OnWaypoint[unit.networkID].speed = GetDistance2D(_OnWaypoint[unit.networkID].startPos,unit.pos)/(Game.Timer() - _OnWaypoint[unit.networkID].time)
+					-- print("OnDash: "..unit.charName)
+				end
+			end,0.05)
+	end
+	return _OnWaypoint[unit.networkID]
 end
 	  
 local GetPred = function(unit,speed,delay,sourcePosA)
-	local speed = speed or mathhuge
+	local speed = speed or huge
 	local delay = delay or 0.25
 	local sourcePos = sourcePosA or Ekko.pos
 	local unitSpeed = unit.ms
@@ -276,20 +346,20 @@ Priority = function(charName)
     return table.contains(p4, charName) and 2.25 or 1
 end
 
-local GetEnemyHeroes = function()
+ GetEnemyHeroes = function()
     _EnemyHeroes = {}
     for i = 1, HeroCount() do
     local unit = Hero(i)
-    if unit.team == TEAM_ENEMY  then
+    if unit.team == TEAM_ENEMY or unit.isEnemy then
     _EnemyHeroes[myCounter] = unit
-    local myCounter = myCounter + 1
+    myCounter = myCounter + 1
 end
 end
     myCounter = 1
     return #_EnemyHeroes
 end
 
-local findEmemy = function(range)
+local findEnemy = function(range)
     local target
     for i=1, HeroCount() do
     local unit = Hero(i)
@@ -421,10 +491,11 @@ end
 
  castSpell = {state = 0, tick = GetTickCount(), casting = GetTickCount() - 1000, mouse = mousePos}
     CastSpell = function(spell,pos,range,delay)
-    local range = range or mathhuge
+    local range = range or huge
     local delay = delay or 250
-    local ticker = GetTickCount()       
-    if castSpell.state == 0 and GetDistance(Ekko.pos, pos) < range and ticker - castSpell.casting > delay + Latency() then
+    local ticker = GetTickCount()  
+	local pos = pos or myHero.pos	
+    if castSpell.state == 0 and GetDistance(myHero.pos, pos) < range and ticker - castSpell.casting > delay + Latency() then
     castSpell.state = 1
     castSpell.mouse = mousePos
     castSpell.tick = ticker
@@ -451,7 +522,7 @@ end
 		
 
 CastSpellMM = function(spell, pos, range, delay)
-	local range = range or mathhuge
+	local range = range or huge
 	local delay = delay or 250
 	local ticker = GetTickCount()
 	if castSpell.state == 0 and GetDistance(Ekko.pos, pos) < range and ticker - castSpell.casting > delay + a() then
@@ -512,30 +583,6 @@ end
 end
 end
 
-GetIgnite = function()
-    if Ekko:GetSpellData(SUMMONER_2).name:lower() == "summonerdot" then
-    igniteSlot = 5
-    ignite = HK_SUMMONER_2
-    elseif Ekko:GetSpellData(SUMMONER_1).name:lower() == "summonerdot" then
-    igniteSlot = 4
-    ignite = HK_SUMMONER_1
-    else
-    igniteSlot = nil
-    ignite = nil
-end
-end	
-	
-KillstealIGN = function(target)
-    local items = checkItems()
-    if target then        
-    if ignite and igniteSlot and Flux.Killsteal.ignite:Value() then
-    if target and Ready(igniteSlot) == 0 and GetDistanceSqr(Ekko, target) < 450 * 450 and 25 >= (100 * target.health / target.maxHealth) then
-    Cast(ignite, target)
-end
-end
-end
-end
-
 validTarget = function(unit)
         if unit and unit.isEnemy and unit.valid and unit.isTargetable and not unit.dead and not unit.isImmortal and not (GotBuff(unit, 'FioraW') == 1) and
         not (GotBuff(unit, 'XinZhaoRRangedImmunity') == 1 and unit.distance <= 450) and unit.visible then
@@ -560,17 +607,17 @@ end
 local VectorMovementCollision = function (startPoint1, endPoint1, v1, startPoint2, v2, delay)
 	local sP1x, sP1y, eP1x, eP1y, sP2x, sP2y = startPoint1.x, startPoint1.z, endPoint1.x, endPoint1.z, startPoint2.x, startPoint2.z
 	local d, e = eP1x-sP1x, eP1y-sP1y
-	local dist, t1, t2 = mathsqrt(d*d+e*e), nil, nil
+	local dist, t1, t2 = sqrt(d*d+e*e), nil, nil
 	local S, K = dist~=0 and v1*d/dist or 0, dist~=0 and v1*e/dist or 0
 	local function GetCollisionPoint(t) return t and {x = sP1x+S*t, y = sP1y+K*t} or nil end
 	if delay and delay~=0 then sP1x, sP1y = sP1x+S*delay, sP1y+K*delay end
 	local r, j = sP2x-sP1x, sP2y-sP1y
 	local c = r*r+j*j
 	if dist>0 then
-	if v1 == mathhuge then
+	if v1 == huge then
 	local t = dist/v1
 	t1 = v2*t>=0 and t or nil
-	elseif v2 == mathhuge then
+	elseif v2 == huge then
 	t1 = 0
 	else
 	local a, b = S*S+K*K-v2*v2, -r*S-j*K
@@ -584,7 +631,7 @@ end
 	else --a*t*t+2*b*t+c=0
 	local sqr = b*b-a*c
 	if sqr>=0 then
-	local nom = mathsqrt(sqr)
+	local nom = sqrt(sqr)
 	local t = (-nom-b)/a
 	t1 = v2*t>=0 and t or nil
 	t = (nom-b)/a
@@ -639,7 +686,7 @@ local IsImmobile = function(unit, spell)
 	for i = 1, unit.buffCount do
 	local buff = unit:GetBuff(i)
 	if buff.duration > 0 then
-	local ExtraDelay = speed == mathhuge and 0 or (GetDistance(from, unit.pos) / speed)
+	local ExtraDelay = speed == huge and 0 or (GetDistance(from, unit.pos) / speed)
 	if buff.expireTime + (radius / unit.ms) > Timer() + delay + ExtraDelay then
 	debuff[buff.type] = true
 end
@@ -725,10 +772,37 @@ end
 end
 end
 
+UpdateMovementHistory =	function()
+    for i = 1, TotalHeroes do
+        local unit = Hero(i)
+        if not _movementHistory[unit.charName] then
+            _movementHistory[unit.charName] = {}
+            _movementHistory[unit.charName]['EndPos'] = unit.pathing.endPos
+            _movementHistory[unit.charName]['StartPos'] = unit.pathing.endPos
+            _movementHistory[unit.charName]['PreviousAngle'] = 0
+            _movementHistory[unit.charName]['ChangedAt'] = Timer()
+        end
+
+        if
+            _movementHistory[unit.charName]['EndPos'].x ~= unit.pathing.endPos.x or _movementHistory[unit.charName]['EndPos'].y ~= unit.pathing.endPos.y or
+                _movementHistory[unit.charName]['EndPos'].z ~= unit.pathing.endPos.z
+         then
+            _movementHistory[unit.charName]['PreviousAngle'] =
+                Angle(
+                Vector(_movementHistory[unit.charName]['StartPos'].x, _movementHistory[unit.charName]['StartPos'].y, _movementHistory[unit.charName]['StartPos'].z),
+                Vector(_movementHistory[unit.charName]['EndPos'].x, _movementHistory[unit.charName]['EndPos'].y, _movementHistory[unit.charName]['EndPos'].z)
+            )
+            _movementHistory[unit.charName]['EndPos'] = unit.pathing.endPos
+            _movementHistory[unit.charName]['StartPos'] = unit.pos
+            _movementHistory[unit.charName]['ChangedAt'] = Timer()
+        end
+    end
+end
+
 local GetBestCastPosition = function (unit, spell)
-	local range = spell.Range and spell.Range - 15 or mathhuge
+	local range = spell.Range and spell.Range - 15 or huge
 	local radius = spell.Radius == 0 and 1 or (spell.Radius + unit.boundingRadius) - 4
-	local speed = spell.Speed or mathhuge
+	local speed = spell.Speed or huge
 	local from = spell.From or Ekko
 	local delay = spell.Delay + (0.07 + Latency() / 2000)
 	local collision = spell.Collision or false
@@ -857,12 +931,70 @@ GetBestLinearCastPos = function(spell, sTar, list)
 	return endPos, MostHit
 end
 
--------------------------------------------------------------------------------------------------------------------------------		
+Angle = function(A, B)
+    local deltaPos = A - B
+    local angle = atan2(deltaPos.x, deltaPos.z) * 180 / pi
+    if angle < 0 then
+    angle = angle + 360
+end
+    return angle
+end
+
+GetIgnite = function()
+    if Ekko:GetSpellData(SUMMONER_2).name:lower() == "summonerdot" then
+    igniteSlot = 5
+    ignite = HK_SUMMONER_2
+    elseif Ekko:GetSpellData(SUMMONER_1).name:lower() == "summonerdot" then
+    igniteSlot = 4
+    ignite = HK_SUMMONER_1
+    else
+    igniteSlot = nil
+    ignite = nil
+end    
+end
+
+checkItems = function()
+	local items = {}
+	for slot = ITEM_1,ITEM_7 do
+		local id = myHero:GetItemData(slot).itemID 
+		if id > 0 then
+			items[id] = slot
+		end
+	end
+	return items
+end
+
+function ValidTarget(target, range)
+    range = range and range or math
+    return target ~= nil and target.valid and target.visible and not target.dead and target.distance <= range
+end
+
+Items = function(target)
+	local items = checkItems()
+	local targetHG = GetTarget(700)  
+	if target then	
+	if ignite and igniteSlot and Flux.Killsteal.ign:Value() then
+	if target and Ready(igniteSlot) == 0 and GetDistanceSqr(myHero, target) < 450 * 450 and 25 >= (100 * target.health / target.maxHealth) then
+	Cast(ignite, target)    
+    if Flux.Killsteal.gunbladebilge:Value() then
+    if GetItemSlot(myHero, 3146) > 0 and ValidTarget(targetHG, 700) then
+            if myHero:GetSpellData(GetItemSlot(myHero, 3146)).currentCd == 0 then
+               Cast(Item_HK[GetItemSlot(myHero, 3146)], targetHG)
+            end
+        end
+    end
+end
+end
+end
+end	
+
+--------------------------------------------------------------------------------------------------------------------------------		
 --------------------------------------------------------------------------------------------------------------------------------	
 ----------------------------------------------------------------LocalCallBacks-------------------------------------------------------
 --------------------------------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------------------------------
-LocalCallbackAdd('Load',function()        
+LocalCallbackAdd('Load',function()     
+	Item_HK = {}   
     TotalHeroes = GetEnemyHeroes()
 	GetIgnite()
     FluxMenu()
@@ -878,16 +1010,38 @@ end
 	Flux.Killsteal:MenuElement({id = hero.charName, name = "Use ignite on: "..hero.charName, value = true})
 end
 end
-        
 
-local orbwalkername = ""
+
+		if _G.SDK and _G.SDK.Orbwalker then
+			Orb = 1
+		elseif _G.GOS then
+			Orb = 2
+		elseif _G.gsoSDK then
+			Orb = 3
+		end
+				
+		if  Orb == 1 then
+			Orbwalker = SDK.Orbwalker
+			SDKCombo = SDK.ORBWALKER_MODE_COMBO
+			SDKHarass = SDK.ORBWALKER_MODE_HARASS
+			SDKJungleClear = SDK.ORBWALKER_MODE_JUNGLECLEAR
+			SDKJungleClear = SDK.ORBWALKER_MODE_JUNGLECLEAR
+			SDKLaneClear = SDK.ORBWALKER_MODE_LANECLEAR
+			SDKLastHit = SDK.ORBWALKER_MODE_LASTHIT
+			SDKFlee = SDK.ORBWALKER_MODE_FLEE
+			SDKSelector = SDK.TargetSelector
+			SDKMagicDamage = _G.SDK.DAMAGE_TYPE_MAGICAL
+			SDKPhysicalDamage = _G.SDK.DAMAGE_TYPE_PHYSICAL
+		elseif  Orb == 2 then
+		   
+		end
+    end)
+
+	local orbwalkername = ""
 	local orb
 	if SDK then
 	orbwalkername = "IC'S orbwalker"
 	orb = SDK
-	elseif _G.EOW then
-	orb = _G.EOW
-	orbwalkername = "EOW"
 	elseif _G.GOS then
 	orbwalkername = "Noddy orbwalker"
 	orb = _G.GOS
@@ -897,21 +1051,33 @@ local orbwalkername = ""
 	else
 	orbwalkername = "Orbwalker not found"
 end
-end)
 
 LocalCallbackAdd('Tick',function()
+	
+	Item_HK[ITEM_1] = HK_ITEM_1
+    Item_HK[ITEM_2] = HK_ITEM_2
+    Item_HK[ITEM_3] = HK_ITEM_3
+    Item_HK[ITEM_4] = HK_ITEM_4
+    Item_HK[ITEM_5] = HK_ITEM_5
+    Item_HK[ITEM_6] = HK_ITEM_6
+    Item_HK[ITEM_7] = HK_ITEM_7
+	
     if Timer() > Flux.Rate.champion:Value() and #_EnemyHeroes == 0 then
     TotalHeroes = GetEnemyHeroes()
     for i = 1, TotalHeroes do
     local hero = _EnemyHeroes[i]
     Flux.Killsteal:MenuElement({id = hero.charName, name = "Use ignite on: "..hero.charName, value = true})
 end
+UpdateMovementHistory()
+            if myHero.dead or Game.IsChatOpen() == true  or isEvading then return end
 end
     if #_EnemyHeroes == 0 then return end
     OnVisionF()
+	
+	
     if Ekko.dead or Game.IsChatOpen() == true  or isEvading then return end
 	if Flux.Combo.useAutoQ:Value() then
-	AutoQ()
+	--AutoQ()
 end
     if Flux.Combo.comboActive:Value() and Ekko.attackData.state ~= 2 then
     Combo()
@@ -932,10 +1098,10 @@ end
 end)
 
 LocalCallbackAdd('Draw', function()
-	if Flux.Drawings.Q.Enabled:Value() then DrawCircle(Ekko.pos, Q.Range, 0, Flux.Drawings.Q.Color:Value()) end
-	if Flux.Drawings.W.Enabled:Value() then DrawCircle(Ekko.pos, W.Range, 0, Flux.Drawings.W.Color:Value()) end
+    if Flux.Drawings.Q.Enabled:Value() then DrawCircle(Ekko.pos, Q.Range, 0, Flux.Drawings.Q.Color:Value()) end
+    if Flux.Drawings.W.Enabled:Value() then DrawCircle(Ekko.pos, W.Range, 0, Flux.Drawings.W.Color:Value()) end
 	if Flux.Drawings.E.Enabled:Value() then DrawCircle(Ekko.pos, E.Range, 0, Flux.Drawings.E.Color:Value()) end
-	if Flux.Drawings.R.Enabled:Value() then DrawCircle(Ekko.pos, R.Range, 0, Flux.Drawings.R.Color:Value()) end
+    if Flux.Drawings.R.Enabled:Value() then DrawCircle(Ekko.pos, R.Range, 0, Flux.Drawings.R.Color:Value()) end
 end)
 
 ----------
@@ -959,7 +1125,8 @@ FluxMenu = function()
 --Killsteal and Activator ---	
 -----------------------------
 	Flux:MenuElement({id = "Killsteal", name = "Killsteal and Activator", type = MENU})
-	Flux.Killsteal:MenuElement({id = "ignite", name = "AutoIgnite", value = true})	
+	Flux.Killsteal:MenuElement({id = "ign", name = "AutoIgnite", value = true})	
+	Flux.Killsteal:MenuElement({id = "gunbladebilge", name = "Gunbblade and Bilgewater in combo", value = true})
 ------------
 --Harass ---	
 ------------	
@@ -1007,24 +1174,107 @@ FluxMenu = function()
     Flux.Drawings.R:MenuElement({id = "Enabled", name = "Enabled", value = true})       
     Flux.Drawings.R:MenuElement({id = "Width", name = "Width", value = 1, min = 1, max = 5, step = 1})
     Flux.Drawings.R:MenuElement({id = "Color", name = "Color", color = DrawColor(200, 255, 255, 255)})
+	end
+-------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------	
+-----------------------------------------------	COMBO function-------------------------------------------------
+-------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------	
+
+
+
+
+
+local CastQ = function()
+	local target = GetTarget(1600)
+	local targetQ = GetTarget(Q.Range)
+	if targetQ then
+			if Ready(_Q) == 0 and target.pos:DistanceTo() <= Q.Range  and Flux.Combo.UseQ:Value() then
+            local Qpos, qcpos, hitchance = GetBestCastPosition(targetQ, Q)
+            if hitchance >= 2 then
+            if Qpos:DistanceTo() > Q.Range then 
+                Qpos = Ekko.pos + (Qpos - Ekko.pos):Normalized()*Q.Range
+                end
+            Qpos = Ekko.pos + (Qpos - Ekko.pos):Normalized()*(GetDistance(Qpos, Ekko.pos) + 0.5*targetQ.boundingRadius)
+            if Qpos:To2D().onScreen then
+                Cast(HK_Q, Qpos, Q.Range, Q.Delay) 
+end
+end
+end  
+end
+end
+
+local CastE = function()
+	local targetE = GetTarget(E.Range)
+	if targetE then
+	if Ready(_E) == 0 then
+	Cast(HK_E, target)					
+end
+end
+end
+
+local CastW = function()
+	local CastPos, HitChance, TimeToHit = PremiumPrediction:GetPrediction(Ekko, target, 1650, 1600, 3.75, 375, false)
+	if CastPos and HitChance >= 5 and TimeToHit < 1 and ValidTarget(target, 1600) then
+    Cast(HK_Q, CastPos)
+end 
+end 
+
+
+--[[local CastW = function()
+	local targetW = GetTarget(2000)
+	if targetW then
+	if Ready(_W) == 0 and GetBestCircularCastPos(W, targetW) then
+	Cast(HK_W, targetW)
+end
+end
+end	]]
+	
+
+
+local CastR = function()
+	local target = GetTarget(1600)
+	local targetR = GetTarget(R.Range)
+	if targetR then
+	if Ready(_R) == 0 and target.pos:DistanceTo(Ekko.pos) < 500 then 
+    if Ekko.health/Ekko.maxHealth <= Flux.Combo.Health:Value() then
+	Cast(HK_R, Ekko)			
+end			
+end 
+end
 end
 -------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------	
 -----------------------------------------------	SPELLS-------------------------------------------------
 -------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------	
-	
---[[AutoQ = function()
-	local targetQ = GetTarget(Q.Range)
-        local CastPos, HitChance, TimeToHit = PremiumPrediction:GetLinearAOEPrediction(Ekko, targetQ, 1075, 950, 0.25, 60, 45, false)
-	if CastPos and HitChance >= 9 and ValidTarget(target, 1000) and Ready(_Q) == 0 then
-	Cast(HK_Q, CastPos)			
-end 
-end]] -- Not working for now
-
 
 Combo = function()
-			local target = GetTarget(1100) -- xD
+	local target = GetTarget(1600)
+	if target then
+	Items(target)
+	end
+	if Flux.Combo.UseR:Value() then
+	CastR()
+end
+
+	if Flux.Combo.UseW:Value() then
+	CastW(target)
+end	
+	
+	if Flux.Combo.UseE:Value() then 
+	CastE()
+end	
+
+	if Flux.Combo.UseQ:Value() then 
+	CastQ()
+end
+end
+	
+		
+
+
+			
 				-----------------------------------------------E+Q USAGE---------------------------------------------
 		--[[	local CastQE = CastSpell
 			local targetE = GetTarget(E.Range)
@@ -1055,7 +1305,7 @@ end]]--
 end
 end	]]--		
 				
-                -----------------------------------------------EQ USAGE---------------------------------------------
+                -----------------------------------------------QE USAGE---------------------------------------------
 
 		--[[	local CastQ = CastSpell
 			local targetQ = GetTarget(Q.Range)
@@ -1082,54 +1332,38 @@ end	]]--
           end]]
 		  
 				
-local CastQ = CastSpell
-	local targetQ = GetTarget(Q.Range)
-	if Ready(_Q) == 0 and target.pos:DistanceTo() <= Q.Range  and Flux.Combo.UseQ:Value() then
-        local Qpos, qcpos, hitchance = GetBestCastPosition(targetQ, Q)
-        if hitchance >= 2 then
-        if Qpos:DistanceTo() > Q.Range then 
-        Qpos = Ekko.pos + (Qpos - Ekko.pos):Normalized()*Q.Range
-end
-        Qpos = Ekko.pos + (Qpos - Ekko.pos):Normalized()*(GetDistance(Qpos, Ekko.pos) + 0.5*targetQ.boundingRadius)
-        if Qpos:To2D().onScreen then
-        CastQ(HK_Q, Qpos, Q.Range, Q.Delay) 				 else
-        CastSpellMM(HK_Q, Qpos, Q.Range, Q.Delay)
-end
-end
-end       		
-            -----------------------------------------------W USAGE---------------------------------------------	
-local targetW = GetTarget(W.Range)
-	if targetW then
-	if Ready(_W) == 0 and Flux.Combo.UseW:Value() and Ekko.pos:DistanceTo(target.pos) <= 500 then
-	local Wpos, qcpos, hitchance = GetBestCastPosition(targetW, W)
-        if hitchance >= 2 then
-        if Wpos:DistanceTo() > W.Range then 
-        Wpos = Ekko.pos + (Wpos - Ekko.pos):Normalized()*W.Range
-end
-        Wpos = Ekko.pos + (Wpos - Ekko.pos):Normalized()*(GetDistance(Wpos, Ekko.pos) + 0.5*targetW.boundingRadius)
-        if Wpos:To2D().onScreen then
-        CastQ(HK_W, Wpos, W.Range, W.Delay) 				 else
-        CastSpellMM(HK_W, Wpos, W.Range, W.Delay)
-end
-end
-end
-end
+	
+         
+		  
 
-				
+            -----------------------------------------------W USAGE---------------------------------------------	
+		--[[local targetW = GetTarget(W.Range)
+		if targetW then
+		if Ready(_W) == 0 and Flux.Combo.UseW:Value() and Ekko.pos:DistanceTo(target.pos) <= 500 then
+		 local Wpos, qcpos, hitchance = GetBestCastPosition(targetW, W)
+            if hitchance >= 2 then
+            if Wpos:DistanceTo() > W.Range then 
+                Wpos = Ekko.pos + (Wpos - Ekko.pos):Normalized()*W.Range
+                end
+            Wpos = Ekko.pos + (Wpos - Ekko.pos):Normalized()*(GetDistance(Wpos, Ekko.pos) + 0.5*targetW.boundingRadius)
+            if Wpos:To2D().onScreen then
+                CastQ(HK_W, Wpos, W.Range, W.Delay) 
+				 else
+                CastSpellMM(HK_W, Wpos, W.Range, W.Delay)]]
+
+			
 		
 
 			-----------------------------------------------E USAGE---------------------------------------------
-local targetE = GetTarget(E.Range)
-	if targetE then
-	if Ready(_E) == 0 and Flux.Combo.UseE:Value() then
-	if SDK then
-	Cast(HK_E, target)
-	SDK.Orbwalker:__OnAutoAttackReset(target)
-	SDK.Orbwalker:__OnAutoAttackReset(target)
-	elseif _G.gsoSDK then
-	Orbwalker:__OnAutoAttackReset() --?
-	self:__OnAutoAttackReset() --?
-	print("reset attack") 
+			--[[local targetE = GetTarget(E.Range)
+			if targetE then
+			if Ready(_E) == 0 and Flux.Combo.UseE:Value() then
+			Cast(HK_E, target)
+			SDK.Orbwalker:__OnAutoAttackReset(target)
+			SDK.Orbwalker:__OnAutoAttackReset(target)
+
+
+
 				
 				
 
@@ -1140,25 +1374,61 @@ end
 
 
 			-----------------------------------------------R USAGE---------------------------------------------
-local targetR = GetTarget(R.Range)
-	if Flux.Combo.UseR:Value() then
-	if Ready(_R) == 0 and target.pos:DistanceTo(Ekko.pos) < 500 then 
-	if Ekko.health/Ekko.maxHealth <= Flux.Combo.Health:Value() then
-	CastSpell(HK_R, Ekko)			
+			 local targetR = GetTarget(R.Range)
+			 if targetR and Flux.Combo.UseR:Value() then
+			 if Ready(_R) == 0 and target.pos:DistanceTo(Ekko.pos) < 500 then 
+        if Ekko.health/Ekko.maxHealth <= Flux.Combo.Health:Value() then
+		     Cast(HK_R, Ekko)
+			
 end			
 end 
 end
-end
+end]]
+
+
+
+
 
 				
-HarassMode = function()						
+				HarassMode = function()
+			local target = GetTarget(1600)
+			if target then
+			local CastQ = CastSpell
+			local targetQ = GetTarget(Q.Range)
+			if Ready(_Q) == 0 and target.pos:DistanceTo() <= Q.Range  and Flux.Combo.UseQ:Value() then
+            local Qpos, qcpos, hitchance = GetBestCastPosition(targetQ, Q)
+            if hitchance >= 2 then
+            if Qpos:DistanceTo() > Q.Range then 
+                Qpos = Ekko.pos + (Qpos - Ekko.pos):Normalized()*Q.Range
+                end
+            Qpos = Ekko.pos + (Qpos - Ekko.pos):Normalized()*(GetDistance(Qpos, Ekko.pos) + 0.5*targetQ.boundingRadius)
+            if Qpos:To2D().onScreen then
+                CastQ(HK_Q, Qpos, Q.Range, Q.Delay) 
+				 else
+                CastSpellMM(HK_Q, Qpos, Q.Range, Q.Delay)
+            end
+            end
+            end
+			
+end
 end
 
-ClearMode = function()  
+ValidTargetM = function(target, range)
+    range = range and range or huge
+    return target ~= nil and target.valid and target.visible and not target.dead and target.distance <= range
+end
+
+ClearMode = function()
+   
 end
 
 ClearJungle = function()
+
+
 end
 
-LastHitMode = function() 
+LastHitMode = function()
+   
 end
+
+	
