@@ -1178,7 +1178,7 @@ end
 
 local CastW = function()
 	local CastPos, HitChance, TimeToHit = PremiumPrediction:GetPrediction(Ekko, target, 1650, 1600, 3.75, 375, false)
-	if CastPos and HitChance >= 5 and TimeToHit < 1 and ValidTarget(target, 1600) then
+	if CastPos and HitChance >= 5 and TimeToHit < 1 and ValidTarget(target, 1600) and Ready(_R) then
     Cast(HK_Q, CastPos)
 end 
 end 
