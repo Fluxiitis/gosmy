@@ -155,43 +155,6 @@ function OnDraw()
 end
 
 
-local ActiveWaypoints = {}
-
-function OnDraw()
-	local unit = myHero
-	local NID = unit.networkID
-	if ActiveWaypoints[NID] and #ActiveWaypoints[NID] > 0 then
-		for i, waypoint in pairs(ActiveWaypoints[NID]) do
-			local endPos1 = waypoint.endPos
-			if endPos1 then
-				Draw.Circle(Vector(endPos1), 100, 1, Draw.Color(192,255,255,255))
-			end
-		end
-	end
-end
-
-function OnTick()
-	local unit = myHero
-	local NID = unit.networkID
-	if not ActiveWaypoints[NID] then ActiveWaypoints[NID] = {} end
-	if unit.pathing.hasMovePath then
-		table.insert(ActiveWaypoints[NID], {startPos = Vector(unit.pathing.startPos), endPos = Vector(unit.pathing.endPos), dashSpeed = unit.pathing.dashSpeed, ticker = GetTickCount()})
-		for i, waypoint in pairs(ActiveWaypoints[NID]) do
-			if waypoint.endPos then
-				if i > 10 then
-					table.remove(ActiveWaypoints[NID], 1)
-				end
-				if GetTickCount() > waypoint.ticker + 1000 then
-					table.remove(ActiveWaypoints[NID], i)
-				end
-			end
-		end
-	else
-		for i = 0, 10 do
-			table.remove(ActiveWaypoints[NID], i)
-		end
-	end
-end
 	
 ---------Functions-------------------------------------------------------     
 		
